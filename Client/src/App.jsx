@@ -1,17 +1,35 @@
-import { useState } from 'react'
-import AuthPage from './AuthPage'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import AuthPage from './AuthPage';
+import Dashboard from './Dashboard';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <div>
-        <AuthPage/>
-      </div>
-    </>
-  )
+// Protected Route Component
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token');
+  
+  if (!token) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
 }
 
-export default App
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<AuthPage />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </Router>
+  );
+}
+
+export default App;

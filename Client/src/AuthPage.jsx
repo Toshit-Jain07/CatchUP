@@ -3,16 +3,18 @@ import { useAuthForm } from './useAuthForm';
 
 export default function AuthPage() {
   const {
-    isDark,
-    setIsDark,
-    isLogin,
-    showPassword,
-    setShowPassword,
-    formData,
-    handleInputChange,
-    handleSubmit,
-    toggleMode
-  } = useAuthForm();
+  isDark,
+  setIsDark,
+  isLogin,
+  showPassword,
+  setShowPassword,
+  formData,
+  loading,
+  error,
+  handleInputChange,
+  handleSubmit,
+  toggleMode
+} = useAuthForm();
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
@@ -197,12 +199,24 @@ export default function AuthPage() {
               </div>
             )}
 
+            {/* Error Message */}
+            {error && (
+              <div className={`p-3 rounded-lg ${
+                isDark ? 'bg-red-900/20 text-red-400' : 'bg-red-100 text-red-600'
+                }`}>
+                {error}
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] shadow-lg"
+              disabled={loading}
+                className={`w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] shadow-lg ${
+                loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
             >
-              {isLogin ? 'Login' : 'Create Account'}
+              {loading ? 'Please wait...' : (isLogin ? 'Login' : 'Create Account')}
             </button>
           </form>
 
