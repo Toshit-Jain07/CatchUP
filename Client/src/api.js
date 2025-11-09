@@ -43,6 +43,22 @@ export const authAPI = {
     getCurrentUser: async() => {
         const response = await api.get('/auth/me');
         return response.data;
+    },
+
+    // Forgot password
+    forgotPassword: async(email) => {
+        const response = await api.post('/auth/forgot-password', { email });
+        return response.data;
+    },
+
+    // Reset password
+    resetPassword: async(token, newPassword, confirmPassword) => {
+        const response = await api.post('/auth/reset-password', {
+            token,
+            newPassword,
+            confirmPassword
+        });
+        return response.data;
     }
 };
 

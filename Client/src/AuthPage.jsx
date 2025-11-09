@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Moon, Sun, Book, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuthForm } from './useAuthForm';
 import ComingSoonModal from './ComingSoonModal';
+import ForgotPasswordModal from './ForgotPasswordModal';
 
 
 export default function AuthPage() {
@@ -22,6 +23,8 @@ export default function AuthPage() {
 // Modal state
   const [showModal, setShowModal] = useState(false);
   const [modalService, setModalService] = useState('');
+  // Forgot Password Modal
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   const handleSocialLogin = (service) => {
     setModalService(service);
@@ -202,6 +205,7 @@ export default function AuthPage() {
               <div className="text-right">
                 <button
                   type="button"
+                  onClick={() => setShowForgotPassword(true)}
                   className={`text-sm ${
                     isDark ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
                   } transition-colors`}
@@ -303,6 +307,13 @@ export default function AuthPage() {
         isOpen={showModal} 
         onClose={() => setShowModal(false)} 
         service={modalService}
+      />
+
+      {/* Forgot Password Modal */}
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={() => setShowForgotPassword(false)}
+        isDark={isDark}
       />
     </div>
   );

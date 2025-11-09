@@ -3,6 +3,8 @@ import AuthPage from './AuthPage';
 import Dashboard from './Dashboard';
 import UserManagement from './UserManagement';
 import './App.css';
+import ResetPassword from './ResetPassword';
+
 
 // Protected Route Component
 function ProtectedRoute({ children }) {
@@ -20,6 +22,7 @@ function App() {
     <Router>
       <Routes>
         <Route path="/" element={<AuthPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route 
           path="/dashboard" 
           element={
