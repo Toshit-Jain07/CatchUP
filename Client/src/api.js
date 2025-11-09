@@ -46,4 +46,25 @@ export const authAPI = {
     }
 };
 
+// User Management API calls (Super Admin only)
+export const userAPI = {
+    // Get all users
+    getAllUsers: async() => {
+        const response = await api.get('/users');
+        return response.data;
+    },
+
+    // Update user role
+    updateUserRole: async(userId, role) => {
+        const response = await api.put(`/users/${userId}/role`, { role });
+        return response.data;
+    },
+
+    // Delete user
+    deleteUser: async(userId) => {
+        const response = await api.delete(`/users/${userId}`);
+        return response.data;
+    }
+};
+
 export default api;

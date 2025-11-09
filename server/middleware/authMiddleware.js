@@ -45,3 +45,27 @@ exports.adminOnly = (req, res, next) => {
         });
     }
 };
+
+// Super Admin only access
+exports.superAdminOnly = (req, res, next) => {
+    if (req.user && req.user.role === 'superadmin') {
+        next();
+    } else {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. Super Admin only.'
+        });
+    }
+};
+
+// Admin or Super Admin access
+exports.adminOrSuperAdmin = (req, res, next) => {
+    if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) {
+        next();
+    } else {
+        return res.status(403).json({
+            success: false,
+            message: 'Access denied. Admin privileges required.'
+        });
+    }
+};

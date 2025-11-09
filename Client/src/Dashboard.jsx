@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Moon, Sun, Book, LogOut, Upload, FileText } from 'lucide-react';
+import { Moon, Sun, Book, LogOut, Upload, FileText, Crown } from 'lucide-react';
 
 export default function Dashboard() {
   const [isDark, setIsDark] = useState(true);
@@ -60,7 +60,11 @@ export default function Dashboard() {
               <div className={`text-right ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 <p className="font-semibold">{user.name}</p>
                 <p className="text-sm opacity-75">
-                  {user.role === 'admin' ? '👑 Admin' : '👤 Student'}
+                  {user.role === 'superadmin'
+                    ? '👑 Super Admin'
+                    : user.role === 'admin'
+                    ? '👑 Admin'
+                    : '👤 Student'}
                 </p>
               </div>
 
@@ -111,14 +115,16 @@ export default function Dashboard() {
         </div>
 
         {/* Admin Actions */}
-        {user.role === 'admin' && (
+        {(user.role === 'admin' || user.role === 'superadmin') && (
           <div className={`${
             isDark ? 'bg-gradient-to-r from-blue-900/50 to-purple-900/50' : 'bg-gradient-to-r from-blue-100 to-purple-100'
-          } rounded-2xl shadow-xl p-8 mb-8 border-2 border-blue-500`}>
+          } rounded-2xl shadow-xl p-8 mb-8 border-2 ${
+            user.role === 'superadmin' ? 'border-yellow-500' : 'border-blue-500'
+          }`}>
             <h3 className={`text-2xl font-bold mb-6 ${
               isDark ? 'text-white' : 'text-gray-900'
             }`}>
-              Admin Actions 👑
+              {user.role === 'superadmin' ? '👑 Super Admin Actions' : 'Admin Actions 👑'}
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -137,6 +143,20 @@ export default function Dashboard() {
                   <p className="text-sm opacity-90">Edit or delete notes</p>
                 </div>
               </button>
+
+              {/* Super Admin Only Button */}
+              {user.role === 'superadmin' && (
+                <button 
+                  onClick={() => window.location.href = '/user-management'}
+                  className="flex items-center space-x-3 p-6 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white rounded-xl transition-all shadow-lg md:col-span-2"
+                >
+                  <Crown size={24} />
+                  <div className="text-left">
+                    <p className="font-semibold text-lg">Manage Users</p>
+                    <p className="text-sm opacity-90">Change roles & manage user accounts</p>
+                  </div>
+                </button>
+              )}
             </div>
           </div>
         )}

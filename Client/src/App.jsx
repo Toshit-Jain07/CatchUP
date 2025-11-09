@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './AuthPage';
 import Dashboard from './Dashboard';
+import UserManagement from './UserManagement';
 import './App.css';
 
 // Protected Route Component
@@ -24,6 +25,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/user-management" 
+          element={
+            <ProtectedRoute>
+              <UserManagement />
             </ProtectedRoute>
           } 
         />
