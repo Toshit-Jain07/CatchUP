@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Moon, Sun, Book, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuthForm } from './useAuthForm';
+import ComingSoonModal from './ComingSoonModal';
+
 
 export default function AuthPage() {
   const {
@@ -15,6 +18,15 @@ export default function AuthPage() {
   handleSubmit,
   toggleMode
 } = useAuthForm();
+
+// Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [modalService, setModalService] = useState('');
+
+  const handleSocialLogin = (service) => {
+    setModalService(service);
+    setShowModal(true);
+  };
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
@@ -236,6 +248,7 @@ export default function AuthPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
+              onClick={() => handleSocialLogin('Google')}
               className={`flex items-center justify-center px-4 py-2 rounded-lg border-2 transition-all duration-300 ${
                 isDark
                   ? 'border-gray-700 hover:bg-gray-700 text-gray-300'
@@ -250,8 +263,10 @@ export default function AuthPage() {
               </svg>
               Google
             </button>
+            
             <button
               type="button"
+              onClick={() => handleSocialLogin('GitHub')}
               className={`flex items-center justify-center px-4 py-2 rounded-lg border-2 transition-all duration-300 ${
                 isDark
                   ? 'border-gray-700 hover:bg-gray-700 text-gray-300'
@@ -282,6 +297,13 @@ export default function AuthPage() {
           )}
         </div>
       </div>
+
+      {/* Coming Soon Modal */}
+      <ComingSoonModal 
+        isOpen={showModal} 
+        onClose={() => setShowModal(false)} 
+        service={modalService}
+      />
     </div>
   );
 }
