@@ -33,7 +33,7 @@ export default function AuthPage() {
 
   return (
     <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
-      isDark ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 to-indigo-100'
+      isDark ? 'bg-gray-900' : 'bg-gray-300'
     }`}>
       
       {/* Theme Toggle Button */}
@@ -50,14 +50,14 @@ export default function AuthPage() {
 
       {/* Main Container */}
       <div className={`w-full max-w-md mx-4 transition-all duration-300 ${
-        isDark ? 'bg-gray-800' : 'bg-white'
+        isDark ? 'bg-gray-800' : 'bg-gray-200'
       } rounded-2xl shadow-2xl overflow-hidden`}>
         
         {/* Header */}
         <div className={`p-8 text-center ${
           isDark 
-            ? 'bg-gradient-to-r from-blue-600 to-purple-600' 
-            : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+            ? 'bg-gradient-to-r from-gray-700 to-black' 
+            : 'bg-gradient-to-r from-gray-700 to-gray-200'
         }`}>
           <div className="flex justify-center mb-4">
             <div className="bg-white p-3 rounded-full">
@@ -228,7 +228,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-                className={`w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] shadow-lg ${
+                className={`w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 rounded-lg transition-all duration-300 transform hover:scale-[1.02] shadow-lg ${
                 loading ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
             >
