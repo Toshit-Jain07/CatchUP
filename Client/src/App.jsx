@@ -4,6 +4,7 @@ import Dashboard from './Dashboard';
 import UserManagement from './UserManagement';
 import './App.css';
 import ResetPassword from './ResetPassword';
+import ProfilePage from './ProfilePage';
 
 
 // Protected Route Component
@@ -28,6 +29,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           } 
         />

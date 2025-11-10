@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Moon, Sun, Book, LogOut, Upload, FileText, Crown } from 'lucide-react';
+import { Book, Settings } from 'lucide-react';
+import SettingsSidebar from './SettingsSidebar';
 
 export default function Dashboard() {
   const [isDark, setIsDark] = useState(true);
   const [user, setUser] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
     // Get user from localStorage
@@ -26,8 +29,29 @@ export default function Dashboard() {
   };
 
   if (!user) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading...</div>
+      </div>
+    );
   }
+
+  const getProfileColor = () => {
+    if (user.role === 'superadmin') return 'from-yellow-500 to-orange-600';
+    if (user.role === 'admin') return 'from-blue-500 to-indigo-600';
+    return 'from-gray-500 to-gray-600';
+  };
+
+  const getProfileImage = () => {
+    const savedImage = localStorage.getItem(`profileImage_${user._id}`);
+    return savedImage;
+  };
+
+  const getRoleText = () => {
+    if (user.role === 'superadmin') return '👑 Super Admin';
+    if (user.role === 'admin') return '🛡️ Admin';
+    return '👤 Student';
+  };
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -37,12 +61,41 @@ export default function Dashboard() {
       {/* Header */}
       <header className={`${
         isDark ? 'bg-gray-800' : 'bg-white'
-      } shadow-lg`}>
+      } shadow-lg sticky top-0 z-30`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
+          <div className="flex justify-between items-center py-4">
             
-            {/* Logo */}
-            <div className="flex items-center space-x-3">
+            {/* Left: Profile Picture with Tooltip */}
+            <div 
+              className="relative"
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+            >
+              {getProfileImage() ? (
+                <img 
+                  src={getProfileImage()} 
+                  alt="Profile" 
+                  className="w-12 h-12 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform shadow-lg border-2 border-blue-500"
+                />
+              ) : (
+                <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getProfileColor()} flex items-center justify-center text-white text-xl font-bold cursor-pointer hover:scale-110 transition-transform shadow-lg`}>
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
+              
+              {/* Tooltip */}
+              {showTooltip && (
+                <div className={`absolute top-full left-0 mt-2 px-3 py-2 rounded-lg shadow-xl whitespace-nowrap animate-fadeIn ${
+                  isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900 border border-gray-200'
+                }`}>
+                  <p className="font-semibold text-sm">{user.name}</p>
+                  <p className="text-xs opacity-75">{getRoleText()}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Center: Logo */}
+            <div className="absolute left-1/2 transform -translate-x-1/2 flex items-center space-x-3">
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-2 rounded-lg">
                 <Book className="text-white" size={28} />
               </div>
@@ -53,42 +106,17 @@ export default function Dashboard() {
               </h1>
             </div>
 
-            {/* Right Side */}
-            <div className="flex items-center space-x-4">
-              
-              {/* User Info */}
-              <div className={`text-right ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-sm opacity-75">
-                  {user.role === 'superadmin'
-                    ? '👑 Super Admin'
-                    : user.role === 'admin'
-                    ? '👑 Admin'
-                    : '👤 Student'}
-                </p>
-              </div>
-
-              {/* Theme Toggle */}
-              <button
-                onClick={() => setIsDark(!isDark)}
-                className={`p-2 rounded-lg transition-all ${
-                  isDark 
-                    ? 'bg-gray-700 text-yellow-400 hover:bg-gray-600' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
-
-              {/* Logout Button */}
-              <button
-                onClick={handleLogout}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all"
-              >
-                <LogOut size={18} />
-                <span>Logout</span>
-              </button>
-            </div>
+            {/* Right: Settings Button */}
+            <button
+              onClick={() => setShowSettings(true)}
+              className={`p-3 rounded-lg transition-all ${
+                isDark 
+                  ? 'hover:bg-gray-700 text-gray-300 hover:text-white' 
+                  : 'hover:bg-gray-100 text-gray-700 hover:text-gray-900'
+              }`}
+            >
+              <Settings size={24} />
+            </button>
           </div>
         </div>
       </header>
@@ -108,82 +136,60 @@ export default function Dashboard() {
           <p className={`text-lg ${
             isDark ? 'text-gray-300' : 'text-gray-600'
           }`}>
-            {user.role === 'admin' 
-              ? 'You have admin access. You can upload and manage notes for all students.'
+            {user.role === 'superadmin' 
+              ? 'You have full admin access. Manage users and all content.'
+              : user.role === 'admin'
+              ? 'You can upload and manage notes for all students.'
               : 'Browse and download notes from your courses.'}
           </p>
         </div>
 
-        {/* Admin Actions */}
-        {(user.role === 'admin' || user.role === 'superadmin') && (
-          <div className={`${
-            isDark ? 'bg-gradient-to-r from-blue-900/50 to-purple-900/50' : 'bg-gradient-to-r from-blue-100 to-purple-100'
-          } rounded-2xl shadow-xl p-8 mb-8 border-2 ${
-            user.role === 'superadmin' ? 'border-yellow-500' : 'border-blue-500'
-          }`}>
-            <h3 className={`text-2xl font-bold mb-6 ${
-              isDark ? 'text-white' : 'text-gray-900'
-            }`}>
-              {user.role === 'superadmin' ? '👑 Super Admin Actions' : 'Admin Actions 👑'}
-            </h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button className="flex items-center space-x-3 p-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl transition-all shadow-lg">
-                <Upload size={24} />
-                <div className="text-left">
-                  <p className="font-semibold text-lg">Upload Notes</p>
-                  <p className="text-sm opacity-90">Add new PDF notes</p>
-                </div>
-              </button>
-
-              <button className="flex items-center space-x-3 p-6 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all shadow-lg">
-                <FileText size={24} />
-                <div className="text-left">
-                  <p className="font-semibold text-lg">Manage Notes</p>
-                  <p className="text-sm opacity-90">Edit or delete notes</p>
-                </div>
-              </button>
-
-              {/* Super Admin Only Button */}
-              {user.role === 'superadmin' && (
-                <button 
-                  onClick={() => window.location.href = '/user-management'}
-                  className="flex items-center space-x-3 p-6 bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800 text-white rounded-xl transition-all shadow-lg md:col-span-2"
-                >
-                  <Crown size={24} />
-                  <div className="text-left">
-                    <p className="font-semibold text-lg">Manage Users</p>
-                    <p className="text-sm opacity-90">Change roles & manage user accounts</p>
-                  </div>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Notes Section (Placeholder) */}
+        {/* Notes Section */}
         <div className={`${
           isDark ? 'bg-gray-800' : 'bg-white'
         } rounded-2xl shadow-xl p-8`}>
-          <h3 className={`text-2xl font-bold mb-6 ${
-            isDark ? 'text-white' : 'text-gray-900'
-          }`}>
-            Available Notes 📚
-          </h3>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className={`text-2xl font-bold ${
+              isDark ? 'text-white' : 'text-gray-900'
+            }`}>
+              Available Notes 📚
+            </h3>
+            
+            {/* Search bar placeholder */}
+            <input
+              type="text"
+              placeholder="Search notes..."
+              className={`px-4 py-2 rounded-lg border-2 transition-all ${
+                isDark
+                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
+              } focus:outline-none`}
+            />
+          </div>
           
-          <div className={`text-center py-12 ${
+          <div className={`text-center py-16 ${
             isDark ? 'text-gray-400' : 'text-gray-500'
           }`}>
-            <FileText size={64} className="mx-auto mb-4 opacity-50" />
-            <p className="text-lg">No notes available yet.</p>
+            <Book size={64} className="mx-auto mb-4 opacity-50" />
+            <p className="text-lg font-medium">No notes available yet.</p>
             <p className="text-sm mt-2">
-              {user.role === 'admin' 
-                ? 'Upload your first note using the button above!'
+              {user.role !== 'student'
+                ? 'Upload your first note from the settings menu!'
                 : 'Check back soon for new notes from your instructors.'}
             </p>
           </div>
         </div>
       </main>
+
+      {/* Settings Sidebar */}
+      <SettingsSidebar
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        user={user}
+        isDark={isDark}
+        setIsDark={setIsDark}
+        onLogout={handleLogout}
+      />
     </div>
   );
 }
