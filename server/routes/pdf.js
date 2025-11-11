@@ -43,6 +43,41 @@ router.get('/', async (req, res) => {
     });
   }
 });
+// @route   GET /api/pdfs/download/:id
+// @desc    Download PDF file with proper headers
+// @access  Public
+router.get('/download/:id', async (req, res) => {
+  try {
+    const pdf = await PDF.findById(req.params.id);
+
+    if (!pdf) {
+      return res.status(404).json({
+        success: false,
+        message: 'PDF not found'
+      });
+    }
+
+    // Increment download count
+    pdf.downloads += 1;
+    await pdf.save();
+
+    // Set proper headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${pdf.fileName}"`);
+ 
+    // Redirect to Cloudinary URL
+    // The browser will download it with the headers we set
+    return res.redirect(pdf.fileUrl);
+
+  } catch (error) {
+    console.error('Download PDF Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while downloading PDF'
+    });
+  }
+});
+
 // @route   GET /api/pdfs/:id
 // @desc    Get single PDF by ID
 // @access  Public
