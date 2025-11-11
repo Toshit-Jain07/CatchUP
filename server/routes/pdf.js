@@ -47,37 +47,36 @@ router.get('/', async (req, res) => {
 // @desc    Download PDF file with proper headers
 // @access  Public
 router.get('/download/:id', async (req, res) => {
-  try {
-    const pdf = await PDF.findById(req.params.id);
+  try {
+    const pdf = await PDF.findById(req.params.id);
 
-    if (!pdf) {
-      return res.status(404).json({
-        success: false,
-        message: 'PDF not found'
-      });
-    }
+    if (!pdf) {
+      return res.status(404).json({
+        success: false,
+        message: 'PDF not found'
+      });
+    }
 
-    // Increment download count
-    pdf.downloads += 1;
-    await pdf.save();
+    // Increment download count
+    pdf.downloads += 1;
+    await pdf.save();
 
-    // Set proper headers for PDF download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${pdf.fileName}"`);
- 
-    // Redirect to Cloudinary URL
-    // The browser will download it with the headers we set
-    return res.redirect(pdf.fileUrl);
+    // Set proper headers for PDF download
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${pdf.fileName}"`);
+    
+    // Redirect to Cloudinary URL
+    // The browser will download it with the headers we set
+    return res.redirect(pdf.fileUrl);
 
-  } catch (error) {
-    console.error('Download PDF Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while downloading PDF'
-    });
-  }
+  } catch (error) {
+    console.error('Download PDF Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while downloading PDF'
+    });
+  }
 });
-
 // @route   GET /api/pdfs/:id
 // @desc    Get single PDF by ID
 // @access  Public
@@ -180,12 +179,151 @@ router.post('/upload', protect, adminOrSuperAdmin, upload.single('pdf'), async (
   }
 });
 
+// @route   PUT /api/pdfs/:id
+// @desc    Update PDF details (not file)
+// @access  Private (Admin/Super Admin or Owner)
+router.put('/:id', protect, async (req, res) => {
+  try {
+    const pdf = await PDF.findById(req.params.id);
+
+    if (!pdf) {
+      return res.status(404).json({
+        success: false,
+        message: 'PDF not found'
+      });
+    }
+
+    // Check if user is owner or admin/super-admin
+    if (
+      pdf.uploadedBy.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin' &&
+      req.user.role !== 'superadmin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this PDF'
+      });
+    }
+
+    const { title, description, semester, branch, year } = req.body;
+
+    if (title) pdf.title = title;
+    if (description !== undefined) pdf.description = description;
+    if (semester) pdf.semester = semester;
+    if (branch) pdf.branch = branch;
+    if (year) pdf.year = year;
+
+    await pdf.save();
+    await pdf.populate('uploadedBy', 'name email role');
+
+    res.status(200).json({
+      success: true,
+      message: 'PDF updated successfully',
+      data: pdf
+    });
+
+  } catch (error) {
+    console.error('Update PDF Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating PDF'
+    });
+  }
+});
+
+// @route   DELETE /api/pdfs/:id
+// @desc    Delete PDF
+// @access  Private (Admin/Super Admin or Owner)
+router.delete('/:id', protect, async (req, res) => {
+  try {
+    const pdf = await PDF.findById(req.params.id);
+
+    if (!pdf) {
+      return res.status(404).json({
+        success: false,
+        message: 'PDF not found'
+      });
+    }
+
+    // Check if user is owner or admin/super-admin
+    if (
+      pdf.uploadedBy.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin' &&
+      req.user.role !== 'superadmin'
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this PDF'
+      });
+    }
+
+    // Delete from Cloudinary
+    try {
+      await cloudinary.uploader.destroy(pdf.cloudinaryId, { resource_type: 'raw' });
+    } catch (cloudinaryError) {
+      console.error('Error deleting from Cloudinary:', cloudinaryError);
+      // Continue with database deletion even if Cloudinary delete fails
+    }
+
+    // Delete from database
+    await PDF.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'PDF deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete PDF Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting PDF'
+    });
+  }
+});
+
+// @route   PUT /api/pdfs/:id/download
+// @desc    Increment download count
+// @access  Public
+router.put('/:id/download', async (req, res) => {
+  try {
+    const pdf = await PDF.findById(req.params.id);
+
+    if (!pdf) {
+      return res.status(404).json({
+        success: false,
+        message: 'PDF not found'
+      });
+    }
+
+    pdf.downloads += 1;
+    await pdf.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Download count updated',
+      downloads: pdf.downloads
+    });
+
+  } catch (error) {
+    console.error('Increment Download Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating download count'
+    });
+  }
+});
+
 // @route   GET /api/pdfs/stats/overview
 // @desc    Get PDF statistics
 // @access  Private (Admin & Super Admin)
 router.get('/stats/overview', protect, adminOrSuperAdmin, async (req, res) => {
   try {
     const totalPDFs = await PDF.countDocuments({ isActive: true });
+    const totalDownloads = await PDF.aggregate([
+      { $match: { isActive: true } },
+      { $group: { _id: null, total: { $sum: '$downloads' } } }
+    ]);
     const totalViews = await PDF.aggregate([
       { $match: { isActive: true } },
       { $group: { _id: null, total: { $sum: '$views' } } }
@@ -195,6 +333,7 @@ router.get('/stats/overview', protect, adminOrSuperAdmin, async (req, res) => {
       success: true,
       data: {
         totalPDFs,
+        totalDownloads: totalDownloads[0]?.total || 0,
         totalViews: totalViews[0]?.total || 0
       }
     });
