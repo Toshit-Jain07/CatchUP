@@ -96,4 +96,72 @@ router.get('/:pdfId', async (req, res) => {
     });
   }
 });
+
+// @route   GET /api/ratings/user/:pdfId
+// @desc    Get current user's rating for a PDF
+// @access  Private
+router.get('/user/:pdfId', protect, async (req, res) => {
+  try {
+    const rating = await Rating.findOne({
+      pdf: req.params.pdfId,
+      user: req.user._id
+    }).populate('user', 'name email');
+
+    if (!rating) {
+      return res.status(404).json({
+        success: false,
+        message: 'You have not rated this PDF yet'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: rating
+    });
+
+  } catch (error) {
+    console.error('Get User Rating Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching your rating'
+    });
+  }
+});
+
+// @route   DELETE /api/ratings/:pdfId
+// @desc    Delete user's rating
+// @access  Private
+router.delete('/:pdfId', protect, async (req, res) => {
+  try {
+    const rating = await Rating.findOne({
+      pdf: req.params.pdfId,
+      user: req.user._id
+    });
+
+    if (!rating) {
+      return res.status(404).json({
+        success: false,
+        message: 'Rating not found'
+      });
+    }
+
+    await Rating.findByIdAndDelete(rating._id);
+
+    // Recalculate average rating
+    await Rating.calculateAverageRating(req.params.pdfId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Rating deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Delete Rating Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting rating'
+    });
+  }
+});
+
 module.exports = router;
