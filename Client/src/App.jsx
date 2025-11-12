@@ -5,6 +5,9 @@ import UserManagement from './UserManagement';
 import './App.css';
 import ResetPassword from './ResetPassword';
 import ProfilePage from './ProfilePage';
+import SemesterDepartments from './SemesterDepartments';
+import DepartmentNotes from './DepartmentNotes';
+import LiberalArtsNotes from './LiberalArtsNotes';
 
 
 // Protected Route Component
@@ -48,6 +51,31 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route 
+          path="/semester/:semesterId/departments" 
+          element={
+            <ProtectedRoute>
+              <SemesterDepartments />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/semester/:semesterId/department/:departmentId" 
+          element={
+            <ProtectedRoute>
+              <DepartmentNotes />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/liberal-arts" 
+          element={
+            <ProtectedRoute>
+              <LiberalArtsNotes />
+            </ProtectedRoute>
+          } 
+        />
+        
       </Routes>
     </Router>
   );

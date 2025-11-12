@@ -83,4 +83,58 @@ export const userAPI = {
     }
 };
 
+// PDF API calls
+export const pdfAPI = {
+    // Get all PDFs with optional filters
+    getAllPDFs: async(filters = {}) => {
+        const { semester, branch, year, search } = filters;
+        let url = '/pdfs?';
+
+        if (semester) url += `semester=${semester}&`;
+        if (branch) url += `branch=${branch}&`;
+        if (year) url += `year=${year}&`;
+        if (search) url += `search=${search}&`;
+
+        const response = await api.get(url);
+        return response.data;
+    },
+
+    // Get single PDF by ID
+    getPDFById: async(pdfId) => {
+        const response = await api.get(`/pdfs/${pdfId}`);
+        return response.data;
+    },
+
+    // Upload new PDF (Admin/Super Admin only)
+    uploadPDF: async(formData) => {
+        const response = await api.post('/pdfs/upload', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
+    },
+
+    // Get PDF statistics (Admin/Super Admin only)
+    getPDFStats: async() => {
+        const response = await api.get('/pdfs/stats/overview');
+        return response.data;
+    }
+};
+
+// Rating API calls
+export const ratingAPI = {
+    // Add or update rating for a PDF
+    addRating: async(pdfId, ratingData) => {
+        const response = await api.post(`/ratings/${pdfId}`, ratingData);
+        return response.data;
+    },
+
+    // Get all ratings for a PDF
+    getRatings: async(pdfId) => {
+        const response = await api.get(`/ratings/${pdfId}`);
+        return response.data;
+    }
+};
+
 export default api;
