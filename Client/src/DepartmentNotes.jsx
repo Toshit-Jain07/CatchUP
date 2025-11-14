@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, FileText, Download, Star, Eye, Calendar, User, Search, Filter, Settings } from 'lucide-react';
 import SettingsSidebar from './SettingsSidebar';
+import { pdfAPI } from './api';
 
 export default function DepartmentNotes() {
   const [isDark, setIsDark] = useState(true);
@@ -9,90 +10,23 @@ export default function DepartmentNotes() {
   const [showSettings, setShowSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBy, setFilterBy] = useState('all');
+  const [notes, setNotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const { semesterId, departmentId } = useParams();
 
   // Department name mapping
   const departmentNames = {
-    'cse': { full: 'Computer Science', short: 'CSE' },
-    'ece': { full: 'Electronics & Communication', short: 'ECE' },
-    'mechanical': { full: 'Mechanical Engineering', short: 'ME' },
-    'civil': { full: 'Civil Engineering', short: 'CE' },
-    'chemical': { full: 'Chemical Engineering', short: 'CHE' },
-    'mathematics': { full: 'Mathematics', short: 'MATH' },
-    'mba': { full: 'Management', short: 'MBA' }
+    'cse': { full: 'Computer Science', short: 'CSE', backendCode: 'CSE' },
+    'ece': { full: 'Electronics & Communication', short: 'ECE', backendCode: 'ECE' },
+    'eee': { full: 'Electrical Engineering', short: 'EEE', backendCode: 'EEE' },
+    'mechanical': { full: 'Mechanical Engineering', short: 'MECH', backendCode: 'MECH' },
+    'civil': { full: 'Civil Engineering', short: 'CIVIL', backendCode: 'CIVIL' },
+    'it': { full: 'Information Technology', short: 'IT', backendCode: 'IT' }
   };
 
-  const currentDept = departmentNames[departmentId] || { full: 'Department', short: 'DEPT' };
-
-  // Mock notes data - Replace with API call
-  const notes = [
-    {
-      id: 1,
-      title: 'Introduction to Programming - Complete Notes',
-      subject: 'Programming Fundamentals',
-      uploadedBy: 'Dr. Sharma',
-      uploadDate: '2024-01-15',
-      downloads: 245,
-      views: 1203,
-      rating: 4.8,
-      reviews: 42,
-      fileSize: '2.4 MB',
-      pages: 87
-    },
-    {
-      id: 2,
-      title: 'Data Structures - Arrays and Linked Lists',
-      subject: 'Data Structures',
-      uploadedBy: 'Prof. Kumar',
-      uploadDate: '2024-01-20',
-      downloads: 189,
-      views: 876,
-      rating: 4.6,
-      reviews: 31,
-      fileSize: '1.8 MB',
-      pages: 56
-    },
-    {
-      id: 3,
-      title: 'Database Management Systems - SQL Guide',
-      subject: 'Database Systems',
-      uploadedBy: 'Dr. Patel',
-      uploadDate: '2024-02-01',
-      downloads: 312,
-      views: 1456,
-      rating: 4.9,
-      reviews: 67,
-      fileSize: '3.1 MB',
-      pages: 112
-    },
-    {
-      id: 4,
-      title: 'Computer Networks - OSI Model Explained',
-      subject: 'Computer Networks',
-      uploadedBy: 'Prof. Singh',
-      uploadDate: '2024-02-10',
-      downloads: 167,
-      views: 723,
-      rating: 4.5,
-      reviews: 28,
-      fileSize: '2.0 MB',
-      pages: 68
-    },
-    {
-      id: 5,
-      title: 'Operating Systems - Process Management',
-      subject: 'Operating Systems',
-      uploadedBy: 'Dr. Verma',
-      uploadDate: '2024-02-15',
-      downloads: 201,
-      views: 934,
-      rating: 4.7,
-      reviews: 45,
-      fileSize: '2.7 MB',
-      pages: 94
-    }
-  ];
+  const currentDept = departmentNames[departmentId] || { full: 'Department', short: 'DEPT', backendCode: 'OTHER' };
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -103,25 +37,74 @@ export default function DepartmentNotes() {
     }
   }, [navigate]);
 
+  // Fetch PDFs from backend
+  useEffect(() => {
+    const fetchPDFs = async () => {
+      try {
+        setLoading(true);
+        setError('');
+        
+        const response = await pdfAPI.getAllPDFs({
+          semester: semesterId,
+          branch: currentDept.backendCode
+        });
+
+        setNotes(response.data || []);
+      } catch (err) {
+        console.error('Error fetching PDFs:', err);
+        setError('Failed to load notes. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchPDFs();
+    }
+  }, [semesterId, currentDept.backendCode, user]);
+
   const filteredNotes = notes.filter(note => 
     note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    note.subject.toLowerCase().includes(searchQuery.toLowerCase())
+    (note.description && note.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleDownload = (noteId, noteTitle) => {
-    // TODO: Implement actual download logic
-    alert(`Downloading: ${noteTitle}`);
+  const handleDownload = async (pdfId, fileUrl, fileName) => {
+    try {
+      // Open PDF in new tab
+      window.open(fileUrl, '_blank');
+      
+      // Optionally: Track download count by viewing the PDF
+      await pdfAPI.getPDFById(pdfId);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download PDF');
+    }
   };
 
-  const handleView = (noteId) => {
-    // TODO: Implement PDF viewer
-    alert(`Opening PDF viewer for note ID: ${noteId}`);
+  const handleView = async (pdfId, fileUrl) => {
+    try {
+      // Increment view count
+      await pdfAPI.getPDFById(pdfId);
+      
+      // Open PDF in new tab
+      window.open(fileUrl, '_blank');
+    } catch (error) {
+      console.error('View error:', error);
+    }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     navigate('/');
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   if (!user) {
@@ -187,7 +170,7 @@ export default function DepartmentNotes() {
               }`} size={20} />
               <input
                 type="text"
-                placeholder="Search notes by title or subject..."
+                placeholder="Search notes by title or description..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={`w-full pl-11 pr-4 py-3 rounded-lg border-2 transition-all ${
@@ -218,102 +201,124 @@ export default function DepartmentNotes() {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-12 text-center`}>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+              Loading notes...
+            </p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-900/20 border border-red-500/50 text-red-400 p-4 rounded-lg mb-8">
+            {error}
+          </div>
+        )}
+
         {/* Notes List */}
-        <div className="space-y-4">
-          {filteredNotes.length === 0 ? (
-            <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-12 text-center`}>
-              <FileText className={`mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} size={64} />
-              <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                No notes found matching your search.
-              </p>
-            </div>
-          ) : (
-            filteredNotes.map((note) => (
-              <div
-                key={note.id}
-                className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-2 ${
-                  isDark ? 'border-gray-700 hover:border-blue-500/50' : 'border-gray-200 hover:border-blue-300'
-                }`}
-              >
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  
-                  {/* Left: Note Info */}
-                  <div className="flex-1">
-                    <div className="flex items-start space-x-4">
-                      <div className="bg-gradient-to-br from-red-500 to-pink-600 p-3 rounded-lg flex-shrink-0">
-                        <FileText className="text-white" size={28} />
-                      </div>
-                      
-                      <div className="flex-1">
-                        <h3 className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                          {note.title}
-                        </h3>
-                        <p className={`text-sm mb-3 ${isDark ? 'text-blue-400' : 'text-blue-600'} font-medium`}>
-                          {note.subject}
-                        </p>
+        {!loading && !error && (
+          <div className="space-y-4">
+            {filteredNotes.length === 0 ? (
+              <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-12 text-center`}>
+                <FileText className={`mx-auto mb-4 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} size={64} />
+                <p className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  No notes found for this semester and department.
+                </p>
+                {(user.role === 'admin' || user.role === 'superadmin') && (
+                  <p className={`text-sm mt-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
+                    Upload notes from the settings menu to get started!
+                  </p>
+                )}
+              </div>
+            ) : (
+              filteredNotes.map((note) => (
+                <div
+                  key={note._id}
+                  className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border-2 ${
+                    isDark ? 'border-gray-700 hover:border-blue-500/50' : 'border-gray-200 hover:border-blue-300'
+                  }`}
+                >
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                    
+                    {/* Left: Note Info */}
+                    <div className="flex-1">
+                      <div className="flex items-start space-x-4">
+                        <div className="bg-gradient-to-br from-red-500 to-pink-600 p-3 rounded-lg flex-shrink-0">
+                          <FileText className="text-white" size={28} />
+                        </div>
                         
-                        <div className="flex flex-wrap gap-4 text-sm">
-                          <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <User size={16} />
-                            <span>{note.uploadedBy}</span>
-                          </div>
-                          <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <Calendar size={16} />
-                            <span>{new Date(note.uploadDate).toLocaleDateString()}</span>
-                          </div>
-                          <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            <FileText size={16} />
-                            <span>{note.pages} pages • {note.fileSize}</span>
+                        <div className="flex-1">
+                          <h3 className={`text-xl font-bold mb-1 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                            {note.title}
+                          </h3>
+                          {note.description && (
+                            <p className={`text-sm mb-3 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                              {note.description}
+                            </p>
+                          )}
+                          
+                          <div className="flex flex-wrap gap-4 text-sm">
+                            <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <User size={16} />
+                              <span>{note.uploadedBy?.name || 'Unknown'}</span>
+                            </div>
+                            <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <Calendar size={16} />
+                              <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                              <FileText size={16} />
+                              <span>{formatFileSize(note.fileSize)}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Right: Stats & Actions */}
-                  <div className="flex flex-col items-end space-y-3">
-                    <div className="flex items-center space-x-4 text-sm">
-                      <div className={`flex items-center space-x-1 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>
-                        <Star size={16} fill="currentColor" />
-                        <span className="font-semibold">{note.rating}</span>
-                        <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>({note.reviews})</span>
+                    {/* Right: Stats & Actions */}
+                    <div className="flex flex-col items-end space-y-3">
+                      <div className="flex items-center space-x-4 text-sm">
+                        <div className={`flex items-center space-x-1 ${isDark ? 'text-yellow-400' : 'text-yellow-600'}`}>
+                          <Star size={16} fill="currentColor" />
+                          <span className="font-semibold">{note.averageRating || 0}</span>
+                          <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>({note.totalRatings || 0})</span>
+                        </div>
+                        <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <Eye size={16} />
+                          <span>{note.views || 0}</span>
+                        </div>
                       </div>
-                      <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                        <Download size={16} />
-                        <span>{note.downloads}</span>
-                      </div>
-                      <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                        <Eye size={16} />
-                        <span>{note.views}</span>
-                      </div>
-                    </div>
 
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleView(note.id)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${
-                          isDark
-                            ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                            : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
-                        }`}
-                      >
-                        <Eye size={18} />
-                        <span>View</span>
-                      </button>
-                      <button
-                        onClick={() => handleDownload(note.id, note.title)}
-                        className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg transition-all flex items-center space-x-2"
-                      >
-                        <Download size={18} />
-                        <span>Download</span>
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => handleView(note._id, note.fileUrl)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${
+                            isDark
+                              ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                              : 'bg-gray-200 hover:bg-gray-300 text-gray-900'
+                          }`}
+                        >
+                          <Eye size={18} />
+                          <span>View</span>
+                        </button>
+                        <button
+                          onClick={() => handleDownload(note._id, note.fileUrl, note.fileName)}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-lg transition-all flex items-center space-x-2"
+                        >
+                          <Download size={18} />
+                          <span>Download</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        )}
       </main>
 
       <SettingsSidebar

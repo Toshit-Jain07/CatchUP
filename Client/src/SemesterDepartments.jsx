@@ -28,9 +28,17 @@ export default function SemesterDepartments() {
       description: 'Circuits, Signals, Communication'
     },
     { 
+      id: 'eee', 
+      name: 'Electrical Engineering', 
+      shortName: 'EEE',
+      icon: Zap,
+      color: 'from-purple-500 to-pink-500',
+      description: 'Power Systems, Machines, Control'
+    },
+    { 
       id: 'mechanical', 
       name: 'Mechanical Engineering', 
-      shortName: 'ME',
+      shortName: 'MECH',
       icon: Cog,
       color: 'from-gray-500 to-gray-700',
       description: 'Thermodynamics, Mechanics, Design'
@@ -38,35 +46,19 @@ export default function SemesterDepartments() {
     { 
       id: 'civil', 
       name: 'Civil Engineering', 
-      shortName: 'CE',
+      shortName: 'CIVIL',
       icon: Building,
       color: 'from-green-500 to-emerald-500',
       description: 'Structures, Construction, Materials'
     },
     { 
-      id: 'chemical', 
-      name: 'Chemical Engineering', 
-      shortName: 'CHE',
-      icon: FlaskConical,
-      color: 'from-purple-500 to-pink-500',
-      description: 'Process, Reactions, Materials'
-    },
-    { 
-      id: 'mathematics', 
-      name: 'Mathematics', 
-      shortName: 'MATH',
-      icon: Calculator,
+      id: 'it', 
+      name: 'Information Technology', 
+      shortName: 'IT',
+      icon: Cpu,
       color: 'from-indigo-500 to-blue-500',
-      description: 'Calculus, Algebra, Statistics'
-    },
-    { 
-      id: 'mba', 
-      name: 'Management', 
-      shortName: 'MBA',
-      icon: Briefcase,
-      color: 'from-red-500 to-rose-500',
-      description: 'Business, Finance, Marketing'
-    },
+      description: 'Networks, Database, Web Development'
+    }
   ];
 
   useEffect(() => {
