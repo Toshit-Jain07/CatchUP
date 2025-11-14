@@ -18,7 +18,7 @@ const pdfSchema = new mongoose.Schema({
   branch: {
     type: String,
     required: [true, 'Please specify branch'],
-    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'OTHER']
+    enum: ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT','LIBERAL_ARTS', 'OTHER']
   },
   year: {
     type: String,

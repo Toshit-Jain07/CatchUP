@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, FileText, Download, Star, Eye, Calendar, User, Search, Filter, Settings } from 'lucide-react';
 import SettingsSidebar from './SettingsSidebar';
 import { pdfAPI } from './api';
+import { ArrowLeft, FileText, Download, Star, Eye, Calendar, User, Search, Filter, Settings, Edit, Trash2 } from 'lucide-react';
+import PDFEditModal from './PDFEditModal';
 
 export default function DepartmentNotes() {
   const [isDark, setIsDark] = useState(true);
@@ -15,6 +16,8 @@ export default function DepartmentNotes() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { semesterId, departmentId } = useParams();
+  const [editingPDF, setEditingPDF] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Department name mapping
   const departmentNames = {
@@ -106,6 +109,32 @@ export default function DepartmentNotes() {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
+
+  const handleEdit = (pdf) => {
+    setEditingPDF(pdf);
+    setShowEditModal(true);
+  };
+
+  const handleDelete = async (pdfId, pdfTitle) => {
+    if (!window.confirm(`Are you sure you want to delete "${pdfTitle}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await pdfAPI.deletePDF(pdfId);
+      alert('PDF deleted successfully!');
+      // Refresh the list
+      window.location.reload();
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert(error.response?.data?.message || 'Failed to delete PDF');
+    }
+  };
+
+const handleEditSuccess = () => {
+  alert('PDF updated successfully!');
+  window.location.reload();
+};
 
   if (!user) {
     return (
@@ -286,13 +315,17 @@ export default function DepartmentNotes() {
                           <span className="font-semibold">{note.averageRating || 0}</span>
                           <span className={isDark ? 'text-gray-400' : 'text-gray-500'}>({note.totalRatings || 0})</span>
                         </div>
+                        <div className={`flex items-center space-x-1 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                          <Download size={16} />
+                          <span>{note.downloads || 0}</span>
+                        </div>
                         <div className={`flex items-center space-x-1 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                           <Eye size={16} />
                           <span>{note.views || 0}</span>
                         </div>
                       </div>
 
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2 justify-end">
                         <button
                           onClick={() => handleView(note._id, note.fileUrl)}
                           className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${
@@ -311,6 +344,26 @@ export default function DepartmentNotes() {
                           <Download size={18} />
                           <span>Download</span>
                         </button>
+                        
+                        {/* Admin/Owner Actions */}
+                        {(user.role === 'admin' || user.role === 'superadmin' || note.uploadedBy?._id === user._id) && (
+                          <>
+                            <button
+                              onClick={() => handleEdit(note)}
+                              className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white font-medium rounded-lg transition-all flex items-center space-x-2"
+                            >
+                              <Edit size={18} />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(note._id, note.title)}
+                              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-all flex items-center space-x-2"
+                            >
+                              <Trash2 size={18} />
+                              <span>Delete</span>
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -321,6 +374,14 @@ export default function DepartmentNotes() {
         )}
       </main>
 
+      <PDFEditModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        isDark={isDark}
+        pdf={editingPDF}
+        onSuccess={handleEditSuccess}
+      />
+      
       <SettingsSidebar
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}

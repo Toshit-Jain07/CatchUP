@@ -15,7 +15,7 @@ export default function PDFUploadModal({ isOpen, onClose, isDark }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  const branches = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT'];
+  const branches = ['CSE', 'ECE', 'EEE', 'MECH', 'CIVIL', 'IT', 'LIBERAL_ARTS', 'OTHER'];
   const semesters = ['1', '2', '3', '4', '5', '6', '7', '8'];
   const years = ['1', '2', '3', '4'];
 
