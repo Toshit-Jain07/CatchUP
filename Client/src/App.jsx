@@ -1,6 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './AuthPage';
 import SemesterDepartments from './SemesterDepartments';
+import DepartmentNotes from './DepartmentNotes';
+import LiberalArtsNotes from './LiberalArtsNotes';
 import Dashboard from './Dashboard';
 import UserManagement from './UserManagement';
 import './App.css';
@@ -54,6 +56,24 @@ function App() {
           element={
             <ProtectedRoute>
               <SemesterDepartments />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/semester/:semesterId/department/:departmentId" 
+          element={
+            <ProtectedRoute>
+              <DepartmentNotes />
+            </ProtectedRoute>
+          } 
+        />
+
+        <Route 
+          path="/liberal-arts" 
+          element={
+            <ProtectedRoute>
+              <LiberalArtsNotes />
             </ProtectedRoute>
           } 
         />
