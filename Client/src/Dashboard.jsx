@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Book, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Book, Settings, GraduationCap, BookOpen } from 'lucide-react';
 import SettingsSidebar from './SettingsSidebar';
 
 export default function Dashboard() {
@@ -7,25 +8,40 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const navigate = useNavigate();
+
+  const semesters = [
+    { id: 1, name: 'Semester 1', icon: '1️⃣', color: 'from-blue-500 to-cyan-500' },
+    { id: 2, name: 'Semester 2', icon: '2️⃣', color: 'from-purple-500 to-pink-500' },
+    { id: 3, name: 'Semester 3', icon: '3️⃣', color: 'from-green-500 to-emerald-500' },
+    { id: 4, name: 'Semester 4', icon: '4️⃣', color: 'from-orange-500 to-red-500' },
+    { id: 5, name: 'Semester 5', icon: '5️⃣', color: 'from-indigo-500 to-blue-500' },
+    { id: 6, name: 'Semester 6', icon: '6️⃣', color: 'from-pink-500 to-rose-500' },
+    { id: 7, name: 'Semester 7', icon: '7️⃣', color: 'from-teal-500 to-cyan-500' },
+    { id: 8, name: 'Semester 8', icon: '8️⃣', color: 'from-yellow-500 to-orange-500' },
+  ];
 
   useEffect(() => {
-    // Get user from localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
     } else {
-      // If no user, redirect to login
-      window.location.href = '/';
+      navigate('/');
     }
-  }, []);
+  }, [navigate]);
 
   const handleLogout = () => {
-    // Clear localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
-    // Redirect to login
-    window.location.href = '/';
+    navigate('/');
+  };
+
+  const handleSemesterClick = (semId) => {
+    navigate(`/semester/${semId}/departments`);
+  };
+
+  const handleLiberalArtsClick = () => {
+    navigate('/liberal-arts');
   };
 
   if (!user) {
@@ -43,8 +59,7 @@ export default function Dashboard() {
   };
 
   const getProfileImage = () => {
-    const savedImage = localStorage.getItem(`profileImage_${user._id}`);
-    return savedImage;
+    return localStorage.getItem(`profileImage_${user._id}`);
   };
 
   const getRoleText = () => {
@@ -83,7 +98,6 @@ export default function Dashboard() {
                 </div>
               )}
               
-              {/* Tooltip */}
               {showTooltip && (
                 <div className={`absolute top-full left-0 mt-2 px-3 py-2 rounded-lg shadow-xl whitespace-nowrap animate-fadeIn ${
                   isDark ? 'bg-gray-700 text-white' : 'bg-white text-gray-900 border border-gray-200'
@@ -127,7 +141,7 @@ export default function Dashboard() {
         {/* Welcome Section */}
         <div className={`${
           isDark ? 'bg-gray-800' : 'bg-white'
-        } rounded-2xl shadow-xl p-8 mb-8`}>
+        } rounded-2xl shadow-xl p-8 mb-12`}>
           <h2 className={`text-3xl font-bold mb-4 ${
             isDark ? 'text-white' : 'text-gray-900'
           }`}>
@@ -136,47 +150,73 @@ export default function Dashboard() {
           <p className={`text-lg ${
             isDark ? 'text-gray-300' : 'text-gray-600'
           }`}>
-            {user.role === 'superadmin' 
-              ? 'You have full admin access. Manage users and all content.'
-              : user.role === 'admin'
-              ? 'You can upload and manage notes for all students.'
-              : 'Browse and download notes from your courses.'}
+            Choose a semester to access notes from different departments
           </p>
         </div>
 
-        {/* Notes Section */}
-        <div className={`${
-          isDark ? 'bg-gray-800' : 'bg-white'
-        } rounded-2xl shadow-xl p-8`}>
-          <div className="flex items-center justify-between mb-6">
-            <h3 className={`text-2xl font-bold ${
-              isDark ? 'text-white' : 'text-gray-900'
-            }`}>
-              Available Notes 📚
-            </h3>
-            
-            {/* Search bar placeholder */}
-            <input
-              type="text"
-              placeholder="Search notes..."
-              className={`px-4 py-2 rounded-lg border-2 transition-all ${
-                isDark
-                  ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500'
-                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:border-blue-500'
-              } focus:outline-none`}
-            />
-          </div>
-          
-          <div className={`text-center py-16 ${
-            isDark ? 'text-gray-400' : 'text-gray-500'
-          }`}>
-            <Book size={64} className="mx-auto mb-4 opacity-50" />
-            <p className="text-lg font-medium">No notes available yet.</p>
-            <p className="text-sm mt-2">
-              {user.role !== 'student'
-                ? 'Upload your first note from the settings menu!'
-                : 'Check back soon for new notes from your instructors.'}
-            </p>
+        {/* Semester Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {semesters.map((semester) => (
+            <button
+              key={semester.id}
+              onClick={() => handleSemesterClick(semester.id)}
+              className={`group relative ${
+                isDark ? 'bg-gray-800' : 'bg-white'
+              } rounded-2xl p-8 hover:scale-105 transition-all duration-300 shadow-xl hover:shadow-2xl overflow-hidden`}
+            >
+              <div className={`absolute inset-0 bg-gradient-to-br ${semester.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}></div>
+              
+              <div className="relative z-10 text-center">
+                <div className="text-6xl mb-4">{semester.icon}</div>
+                <h3 className={`text-2xl font-bold mb-2 ${
+                  isDark ? 'text-white' : 'text-gray-900'
+                }`}>
+                  {semester.name}
+                </h3>
+                <p className={`text-sm ${
+                  isDark ? 'text-gray-400 group-hover:text-gray-300' : 'text-gray-600 group-hover:text-gray-700'
+                } transition-colors`}>
+                  View departments →
+                </p>
+              </div>
+
+              <div className={`absolute inset-0 border-2 border-transparent group-hover:border-opacity-50 rounded-2xl bg-gradient-to-br ${semester.color} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}></div>
+            </button>
+          ))}
+        </div>
+
+        {/* Liberal Arts Section */}
+        <div className="mt-12">
+          <div className={`${
+            isDark 
+              ? 'bg-gradient-to-r from-purple-900 to-indigo-900' 
+              : 'bg-gradient-to-r from-purple-600 to-indigo-600'
+          } rounded-2xl shadow-2xl overflow-hidden`}>
+            <div className="p-8 md:p-12">
+              <div className="flex flex-col md:flex-row items-center justify-between">
+                <div className="flex items-center space-x-6 mb-6 md:mb-0">
+                  <div className="bg-white/10 p-6 rounded-2xl backdrop-blur-sm">
+                    <GraduationCap className="text-white" size={48} />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-white mb-2 flex items-center space-x-2">
+                      <span>Liberal Arts</span>
+                      <span className="text-2xl">🎨</span>
+                    </h2>
+                    <p className="text-purple-200 text-lg">
+                      Access all Liberal Arts resources and notes
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleLiberalArtsClick}
+                  className="bg-white hover:bg-gray-100 text-purple-900 font-bold px-8 py-4 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg flex items-center space-x-2"
+                >
+                  <BookOpen size={24} />
+                  <span>View Notes</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </main>
