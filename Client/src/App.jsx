@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './AuthPage';
+import SemesterDepartments from './SemesterDepartments';
 import Dashboard from './Dashboard';
 import UserManagement from './UserManagement';
 import './App.css';
@@ -31,7 +32,7 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           } 
-        />
+        />        
         <Route 
           path="/profile" 
           element={
@@ -45,6 +46,14 @@ function App() {
           element={
             <ProtectedRoute>
               <UserManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/semester/:semesterId/departments" 
+          element={
+            <ProtectedRoute>
+              <SemesterDepartments />
             </ProtectedRoute>
           } 
         />
