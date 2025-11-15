@@ -4,13 +4,20 @@ import { ArrowLeft, FileText, Download, Star, Eye, Calendar, User, Search, Filte
 import SettingsSidebar from './SettingsSidebar';
 
 export default function LiberalArtsNotes() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
   const [user, setUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBy, setFilterBy] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('All');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   // Mock Liberal Arts notes data
   const notes = [
@@ -138,15 +145,37 @@ export default function LiberalArtsNotes() {
     return matchesSearch && matchesSubject;
   });
 
-  const handleDownload = (noteId, noteTitle) => {
-    // TODO: Implement actual download logic
-    alert(`Downloading: ${noteTitle}`);
-  };
+const handleView = async (pdfId, fileUrl) => {
+  try {
+    // Only increment view count
+    await pdfAPI.getPDFById(pdfId);
+    
+    // Open PDF in new tab for viewing
+    window.open(fileUrl, '_blank');
+  } catch (error) {
+    console.error('View error:', error);
+    alert('Failed to view PDF');
+  }
+};
 
-  const handleView = (noteId) => {
-    // TODO: Implement PDF viewer
-    alert(`Opening PDF viewer for note ID: ${noteId}`);
-  };
+const handleDownload = async (pdfId, fileUrl, fileName) => {
+  try {
+    // Increment download count only
+    await pdfAPI.incrementDownload(pdfId);
+    
+    // Trigger download
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = fileName;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error('Download error:', error);
+    alert('Failed to download PDF');
+  }
+};
 
   const handleLogout = () => {
     localStorage.removeItem('token');

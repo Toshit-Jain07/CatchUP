@@ -4,7 +4,11 @@ import { Book, Settings, GraduationCap, BookOpen } from 'lucide-react';
 import SettingsSidebar from './SettingsSidebar';
 
 export default function Dashboard() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+  const saved = localStorage.getItem('theme');
+  return saved ? saved === 'dark' : true;
+  });
+
   const [user, setUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -20,6 +24,10 @@ export default function Dashboard() {
     { id: 7, name: 'Semester 7', icon: '7️⃣', color: 'from-teal-500 to-cyan-500' },
     { id: 8, name: 'Semester 8', icon: '8️⃣', color: 'from-yellow-500 to-orange-500' },
   ];
+
+  useEffect(() => {
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');

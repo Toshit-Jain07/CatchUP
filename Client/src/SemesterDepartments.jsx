@@ -1,12 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Cpu, Cog, Zap, Building, FlaskConical, Calculator, Briefcase, Settings } from 'lucide-react';
+import { ArrowLeft, Cpu, Cog, Zap, Building, Settings } from 'lucide-react';
 import SettingsSidebar from './SettingsSidebar';
+import { pdfAPI } from './api';
 
 export default function SemesterDepartments() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
   const [user, setUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [stats, setStats] = useState({
+    totalPDFs: 0,
+    totalDepartments: 0,
+    averageRating: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
   const navigate = useNavigate();
   const { semesterId } = useParams();
 
@@ -69,6 +79,30 @@ export default function SemesterDepartments() {
       navigate('/');
     }
   }, [navigate]);
+
+  // Fetch semester statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoadingStats(true);
+        const response = await pdfAPI.getSemesterStats(semesterId);
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error fetching semester stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    if (user) {
+      fetchStats();
+    }
+  }, [semesterId, user]);
+
+  // Save theme to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   const handleDepartmentClick = (deptId) => {
     navigate(`/semester/${semesterId}/department/${deptId}`);
@@ -160,23 +194,23 @@ export default function SemesterDepartments() {
                   
                   <p className={`text-sm ${
                     isDark ? 'text-gray-400' : 'text-gray-600'
-                  } group-hover:${isDark ? 'text-gray-300' : 'text-gray-700'} transition-colors`}>
+                  }`}>
                     {dept.description}
                   </p>
                   
                   <div className="mt-4 flex items-center space-x-2">
                     <span className={`text-sm font-medium ${
                       isDark ? 'text-gray-500' : 'text-gray-400'
-                    } group-hover:${isDark ? 'text-blue-400' : 'text-blue-600'} transition-colors`}>
+                    }`}>
                       View Notes
                     </span>
                     <ArrowLeft className={`transform rotate-180 ${
                       isDark ? 'text-gray-500' : 'text-gray-400'
-                    } group-hover:${isDark ? 'text-blue-400' : 'text-blue-600'} group-hover:translate-x-2 transition-all`} size={16} />
+                    } transition-all`} size={16} />
                   </div>
                 </div>
 
-                <div className={`absolute inset-0 border-2 border-transparent group-hover:border-opacity-30 rounded-2xl bg-gradient-to-br ${dept.color} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}></div>
+                <div className={`absolute inset-0 border-2 border-transparent rounded-2xl bg-gradient-to-br ${dept.color} opacity-0 group-hover:opacity-20 transition-opacity duration-300`}></div>
               </button>
             );
           })}
@@ -187,32 +221,42 @@ export default function SemesterDepartments() {
           <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Semester {semesterId} Overview
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
-              <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                156
-              </p>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Total Notes Available
-              </p>
-            </div>
-            <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
-              <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                {departments.length}
-              </p>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Departments
+          
+          {loadingStats ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <p className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Loading statistics...
               </p>
             </div>
-            <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
-              <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
-                4.8★
-              </p>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Average Rating
-              </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
+                <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                  {stats.totalPDFs}
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Total Notes Available
+                </p>
+              </div>
+              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
+                <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                  {stats.totalDepartments}
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Active Departments
+                </p>
+              </div>
+              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
+                <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                  {stats.averageRating}★
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Average Rating
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
 

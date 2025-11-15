@@ -44,70 +44,69 @@ router.get('/', async (req, res) => {
   }
 });
 // @route   GET /api/pdfs/download/:id
-// @desc    Download PDF file with proper headers
+// @desc    Download PDF file (increments downloads only)
 // @access  Public
-router.get('/download/:id', async (req, res) => {
-  try {
-    const pdf = await PDF.findById(req.params.id);
+router.get('/download/:id', async(req, res) => {
+    try {
+      const pdf = await PDF.findById(req.params.id);
 
-    if (!pdf) {
-      return res.status(404).json({
-        success: false,
-        message: 'PDF not found'
+        if (!pdf) {
+          return res.status(404).json({
+            success: false,
+            message: 'PDF not found'
+          });
+      }
+
+      // Increment download count ONLY (not views)
+      pdf.downloads += 1;
+      await pdf.save();
+
+      // Set proper headers for PDF download
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${pdf.fileName}"`);
+
+      // Redirect to Cloudinary URL
+      return res.redirect(pdf.fileUrl);
+
+    } catch (error) {
+        console.error('Download PDF Error:', error);
+        res.status(500).json({
+          success: false,
+          message: 'Server error while downloading PDF'
       });
-    }
-
-    // Increment download count
-    pdf.downloads += 1;
-    await pdf.save();
-
-    // Set proper headers for PDF download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${pdf.fileName}"`);
-    
-    // Redirect to Cloudinary URL
-    // The browser will download it with the headers we set
-    return res.redirect(pdf.fileUrl);
-
-  } catch (error) {
-    console.error('Download PDF Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while downloading PDF'
-    });
-  }
+   }
 });
 // @route   GET /api/pdfs/:id
-// @desc    Get single PDF by ID
+// @desc    Get single PDF by ID (increments views only)
 // @access  Public
-router.get('/:id', async (req, res) => {
-  try {
-    const pdf = await PDF.findById(req.params.id)
-      .populate('uploadedBy', 'name email role');
+router.get('/:id', async(req, res) => {
+    try {
+        const pdf = await PDF.findById(req.params.id)
+          .populate('uploadedBy', 'name email role');
 
-    if (!pdf) {
-      return res.status(404).json({
-        success: false,
-        message: 'PDF not found'
+        if (!pdf) {
+          return res.status(404).json({
+            success: false,
+            message: 'PDF not found'
+          });
+        }
+
+        // Increment views ONLY (not downloads)
+        pdf.views += 1;
+        await pdf.save();
+
+        res.status(200).json({
+          success: true,
+          data: pdf
+        });
+
+    } catch (error) {
+        console.error('Get PDF Error:', error);
+          res.status(500).json({
+          success: false,
+          message: 'Server error while fetching PDF'
       });
     }
-
-    // Increment views
-    pdf.views += 1;
-    await pdf.save();
-
-    res.status(200).json({
-      success: true,
-      data: pdf
-    });
-
-  } catch (error) {
-    console.error('Get PDF Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Server error while fetching PDF'
-    });
-  }
 });
 
 // @route   POST /api/pdfs/upload
@@ -314,6 +313,59 @@ router.put('/:id/download', async (req, res) => {
   }
 });
 
+// @route   GET /api/pdfs/stats/semester/:semesterId
+// @desc    Get statistics for a specific semester
+// @access  Public
+router.get('/stats/semester/:semesterId', async(req, res) => {
+  try {
+    const { semesterId } = req.params;
+
+    // Count total PDFs for this semester
+    const totalPDFs = await PDF.countDocuments({ 
+      semester: semesterId, 
+      isActive: true 
+    });
+
+    // Count unique departments/branches
+    const departments = await PDF.distinct('branch', { 
+      semester: semesterId, 
+      isActive: true 
+    });
+
+    // Calculate average rating for this semester
+    const ratingStats = await PDF.aggregate([
+    { 
+      $match: { 
+        semester: semesterId, 
+        isActive: true,
+        totalRatings: { $gt: 0 }
+      } 
+    },
+      {
+        $group: {
+            _id: null,
+            avgRating: { $avg: '$averageRating' }
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalPDFs,
+        totalDepartments: departments.length,
+        averageRating: ratingStats.length > 0 ? ratingStats[0].avgRating.toFixed(1) : 0
+      }
+    });
+
+  } catch (error) {
+    console.error('Semester Stats Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching semester statistics'
+  });
+  }
+});
 // @route   GET /api/pdfs/stats/overview
 // @desc    Get PDF statistics
 // @access  Private (Admin & Super Admin)

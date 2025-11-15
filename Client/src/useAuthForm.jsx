@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState , useEffect} from 'react';
 import { authAPI } from './api';
 
 export function useAuthForm() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -14,6 +17,10 @@ export function useAuthForm() {
     confirmPassword: ''
   });
 
+  useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+  
   const handleInputChange = (e) => {
     setFormData({
       ...formData,

@@ -71,30 +71,38 @@ export default function DepartmentNotes() {
     (note.description && note.description.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const handleDownload = async (pdfId, fileUrl, fileName) => {
-    try {
-      // Open PDF in new tab
-      window.open(fileUrl, '_blank');
-      
-      // Optionally: Track download count by viewing the PDF
-      await pdfAPI.getPDFById(pdfId);
-    } catch (error) {
-      console.error('Download error:', error);
-      alert('Failed to download PDF');
-    }
-  };
+const handleView = async (pdfId, fileUrl) => {
+  try {
+    // Only increment view count, don't increment downloads
+    await pdfAPI.getPDFById(pdfId);
+    
+    // Open PDF in new tab for viewing
+    window.open(fileUrl, '_blank');
+  } catch (error) {
+    console.error('View error:', error);
+    alert('Failed to view PDF');
+  }
+};
 
-  const handleView = async (pdfId, fileUrl) => {
-    try {
-      // Increment view count
-      await pdfAPI.getPDFById(pdfId);
-      
-      // Open PDF in new tab
-      window.open(fileUrl, '_blank');
-    } catch (error) {
-      console.error('View error:', error);
-    }
-  };
+const handleDownload = async (pdfId, fileUrl, fileName) => {
+  try {
+    // Increment download count only
+    await pdfAPI.incrementDownload(pdfId);
+    
+    // Create a temporary anchor element to trigger download
+    const link = document.createElement('a');
+    link.href = fileUrl;
+    link.download = fileName;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+  } catch (error) {
+    console.error('Download error:', error);
+    alert('Failed to download PDF');
+  }
+};
 
   const handleLogout = () => {
     localStorage.removeItem('token');

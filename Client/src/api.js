@@ -115,6 +115,12 @@ export const pdfAPI = {
         return response.data;
     },
 
+    // Get semester statistics
+    getSemesterStats: async(semesterId) => {
+        const response = await api.get(`/pdfs/stats/semester/${semesterId}`);
+        return response.data;
+    },
+
     // Update PDF details (Admin/Super Admin or Owner)
     updatePDF: async(pdfId, updateData) => {
         const response = await api.put(`/pdfs/${pdfId}`, updateData);
