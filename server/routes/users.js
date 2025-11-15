@@ -117,4 +117,62 @@ router.delete('/:id', protect, superAdminOnly, async(req, res) => {
     }
 });
 
+// @route   GET /api/users/profile/stats
+// @desc    Get current user's profile statistics
+// @access  Private
+router.get('/profile/stats', protect, async(req, res) => {
+    try {
+        const PDF = require('../models/PDF');
+        const Rating = require('../models/Rating');
+
+        // Get PDFs uploaded by user (if admin/superadmin)
+        let notesUploaded = 0;
+        if (req.user.role === 'admin' || req.user.role === 'superadmin') {
+            notesUploaded = await PDF.countDocuments({
+                uploadedBy: req.user._id,
+                isActive: true
+            });
+        }
+
+        // Get total views for user's uploaded PDFs
+        const viewsStats = await PDF.aggregate([
+            { $match: { uploadedBy: req.user._id, isActive: true } },
+            { $group: { _id: null, totalViews: { $sum: '$views' } } }
+        ]);
+
+        // Get reviews given by user
+        const reviewsGiven = await Rating.countDocuments({ user: req.user._id });
+
+        // Get average rating given by user
+        const avgRatingStats = await Rating.aggregate([
+            { $match: { user: req.user._id } },
+            { $group: { _id: null, avgRating: { $avg: '$rating' } } }
+        ]);
+
+        // Get recent activity (last 10 ratings)
+        const recentRatings = await Rating.find({ user: req.user._id })
+            .populate('pdf', 'title')
+            .sort({ createdAt: -1 })
+            .limit(10);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                notesUploaded,
+                totalViews: viewsStats.length > 0 ? viewsStats[0].totalViews : 0,
+                reviewsGiven,
+                avgRating: avgRatingStats.length > 0 ? avgRatingStats[0].avgRating.toFixed(1) : 0,
+                recentActivity: recentRatings
+            }
+        });
+
+    } catch (error) {
+        console.error('Profile Stats Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while fetching profile statistics'
+        });
+    }
+});
+
 module.exports = router;

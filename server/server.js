@@ -21,6 +21,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/pdfs', require('./routes/pdf'));
 app.use('/api/ratings', require('./routes/rating'));
+app.use('/api/profile', require('./routes/profile'));
 
 // Test route
 app.get('/', (req, res) => {

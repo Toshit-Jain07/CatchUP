@@ -28,6 +28,14 @@ const userSchema = new mongoose.Schema({
         enum: ['student', 'admin', 'superadmin'],
         default: 'student'
     },
+    profileImage: {
+        type: String,
+        default: null
+    },
+    cloudinaryImageId: {
+        type: String,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now

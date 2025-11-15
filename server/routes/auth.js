@@ -66,6 +66,7 @@ router.post('/register', async(req, res) => {
                     name: user.name,
                     email: user.email,
                     role: user.role,
+                    profileImage: user.profileImage,
                     token: generateToken(user._id)
                 }
             });
@@ -123,6 +124,7 @@ router.post('/login', async(req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                profileImage: user.profileImage,
                 token: generateToken(user._id)
             }
         });
@@ -148,7 +150,8 @@ router.get('/me', protect, async(req, res) => {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
-                role: user.role
+                role: user.role,
+                profileImage: user.profileImage
             }
         });
     } catch (error) {
