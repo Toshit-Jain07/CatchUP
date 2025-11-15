@@ -80,10 +80,48 @@ export default function DepartmentNotes() {
     }
   }, [semesterId, currentDept.backendCode, user]);
 
-  const filteredNotes = notes.filter(note => 
-    note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (note.description && note.description.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredNotes = notes
+    .filter(note => 
+      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (note.description && note.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    )
+    .sort((a, b) => {
+      switch (filterBy) {
+        case 'recent':
+          // Most recent first (newest to oldest)
+          return new Date(b.createdAt) - new Date(a.createdAt);
+        
+        case 'popular':
+          // Most downloads first
+          return (b.downloads || 0) - (a.downloads || 0);
+        
+        case 'top-rated':
+          // Highest average rating first
+          // If ratings are equal, sort by number of ratings as tiebreaker
+          if ((b.averageRating || 0) === (a.averageRating || 0)) {
+            return (b.totalRatings || 0) - (a.totalRatings || 0);
+          }
+          return (b.averageRating || 0) - (a.averageRating || 0);
+        
+        case 'most-viewed':
+          // Most views first
+          return (b.views || 0) - (a.views || 0);
+        
+        case 'most-reviewed':
+          // Most reviews/ratings first
+          return (b.totalRatings || 0) - (a.totalRatings || 0);
+        
+        case 'oldest':
+          // Oldest first (oldest to newest)
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        
+        case 'all':
+        default:
+          // Default: most recent
+          return new Date(b.createdAt) - new Date(a.createdAt);
+      }
+    });
+
 
   const handleView = async (pdfId, fileUrl) => {
   try {
@@ -261,8 +299,11 @@ export default function DepartmentNotes() {
               >
                 <option value="all">All Notes</option>
                 <option value="recent">Most Recent</option>
-                <option value="popular">Most Popular</option>
+                <option value="popular">Most Popular (Downloads)</option>
                 <option value="top-rated">Top Rated</option>
+                <option value="most-viewed">Most Viewed</option>
+                <option value="most-reviewed">Most Reviewed</option>
+                <option value="oldest">Oldest First</option>
               </select>
             </div>
           </div>
