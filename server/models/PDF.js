@@ -69,6 +69,23 @@ const pdfSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    isFeatured: {
+        type: Boolean,
+        default: false
+    },
+    isVerified: {
+        type: Boolean,
+        default: false
+    },
+    verifiedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+    },
+    verifiedAt: {
+        type: Date,
+        default: null
+    },
     views: {
         type: Number,
         default: 0
@@ -79,5 +96,7 @@ const pdfSchema = new mongoose.Schema({
 pdfSchema.index({ semester: 1, branch: 1, year: 1 });
 pdfSchema.index({ uploadedBy: 1 });
 pdfSchema.index({ averageRating: -1 });
+pdfSchema.index({ isFeatured: 1 });
+pdfSchema.index({ isVerified: 1 });
 
 module.exports = mongoose.model('PDF', pdfSchema);

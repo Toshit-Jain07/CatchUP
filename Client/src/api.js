@@ -223,4 +223,57 @@ export const profileAPI = {
 };
 
 
+// Admin API calls
+export const adminAPI = {
+    // Get all PDFs with filters
+    getAllPDFs: async(filters = {}) => {
+        const params = new URLSearchParams();
+
+        Object.keys(filters).forEach(key => {
+            if (filters[key]) {
+                params.append(key, filters[key]);
+            }
+        });
+
+        const response = await api.get(`/admin/pdfs?${params.toString()}`);
+        return response.data;
+    },
+
+    // Toggle featured status
+    toggleFeatured: async(pdfId) => {
+        const response = await api.put(`/admin/pdfs/${pdfId}/toggle-featured`);
+        return response.data;
+    },
+
+    // Toggle verified status
+    toggleVerified: async(pdfId) => {
+        const response = await api.put(`/admin/pdfs/${pdfId}/toggle-verified`);
+        return response.data;
+    },
+
+    // Bulk delete
+    bulkDelete: async(pdfIds) => {
+        const response = await api.post('/admin/pdfs/bulk-delete', { pdfIds });
+        return response.data;
+    },
+
+    // Bulk update
+    bulkUpdate: async(pdfIds, updates) => {
+        const response = await api.post('/admin/pdfs/bulk-update', { pdfIds, updates });
+        return response.data;
+    },
+
+    // Get analytics
+    getAnalytics: async() => {
+        const response = await api.get('/admin/pdfs/analytics');
+        return response.data;
+    },
+
+    // Get uploaders list
+    getUploaders: async() => {
+        const response = await api.get('/admin/uploaders');
+        return response.data;
+    }
+};
+
 export default api;

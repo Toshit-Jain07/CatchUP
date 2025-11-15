@@ -8,6 +8,7 @@ import UserManagement from './UserManagement';
 import './App.css';
 import ResetPassword from './ResetPassword';
 import ProfilePage from './ProfilePage';
+import ManageNotes from './ManageNotes';
 
 
 // Protected Route Component
@@ -48,6 +49,14 @@ function App() {
           element={
             <ProtectedRoute>
               <UserManagement />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/manage-notes" 
+          element={
+            <ProtectedRoute>
+              <ManageNotes />
             </ProtectedRoute>
           } 
         />
