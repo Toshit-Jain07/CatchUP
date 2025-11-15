@@ -70,6 +70,12 @@ export const userAPI = {
         return response.data;
     },
 
+    // Get current user's profile statistics
+    getProfileStats: async() => {
+        const response = await api.get('/users/profile/stats');
+        return response.data;
+    },
+
     // Update user role
     updateUserRole: async(userId, role) => {
         const response = await api.put(`/users/${userId}/role`, { role });
