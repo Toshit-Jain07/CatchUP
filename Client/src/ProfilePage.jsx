@@ -1,27 +1,32 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ArrowLeft, Camera, Mail, User as UserIcon, Shield, 
-  Calendar, Download, Star, Edit2, Save, X 
+  ArrowLeft, Camera, Calendar, Star, Edit2, Save, X, Eye, FileText, Trash2
 } from 'lucide-react';
+import { userAPI, profileAPI } from './api';
 
 export default function ProfilePage() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState('');
-  const [profileImage, setProfileImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [stats, setStats] = useState({
+    notesUploaded: 0,
+    totalViews: 0,
+    reviewsGiven: 0,
+    avgRating: 0,
+    recentActivity: []
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
   const navigate = useNavigate();
 
-  // Mock stats (replace with real data later)
-  const stats = {
-    notesDownloaded: 47,
-    notesUploaded: user?.role !== 'student' ? 23 : 0,
-    reviews: 12,
-    avgRating: 4.7,
-    joinedDate: user?.createdAt || new Date()
-  };
+  useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -29,55 +34,122 @@ export default function ProfilePage() {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       setEditedName(parsedUser.name);
-      
-      // Load profile image from localStorage
-      const savedImage = localStorage.getItem(`profileImage_${parsedUser._id}`);
-      if (savedImage) {
-        setImagePreview(savedImage);
-      }
     } else {
       navigate('/');
     }
   }, [navigate]);
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5000000) { // 5MB limit
-        alert('Image size should be less than 5MB');
-        return;
-      }
+  // Fetch real statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setProfileImage(reader.result);
+      try {
+        setLoadingStats(true);
+        const response = await userAPI.getProfileStats();
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error fetching profile stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, [user]);
+
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    try {
+      setUploadingImage(true);
+
+      // Upload to backend
+      const response = await profileAPI.uploadProfileImage(file);
+
+      // Update user state
+      const updatedUser = {
+        ...user,
+        profileImage: response.data.profileImage
       };
-      reader.readAsDataURL(file);
+      setUser(updatedUser);
+      
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      alert('Profile image uploaded successfully!');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert(error.response?.data?.message || 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
-  const handleSaveProfile = () => {
-    // Save to localStorage (in real app, send to backend)
-    const updatedUser = { ...user, name: editedName };
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    
-    if (profileImage) {
-      localStorage.setItem(`profileImage_${user._id}`, profileImage);
+  const handleDeleteImage = async () => {
+    if (!window.confirm('Are you sure you want to delete your profile image?')) {
+      return;
     }
-    
-    setUser(updatedUser);
-    setIsEditing(false);
-    alert('Profile updated successfully!');
+
+    try {
+      setUploadingImage(true);
+      await profileAPI.deleteProfileImage();
+
+      // Update user state
+      const updatedUser = {
+        ...user,
+        profileImage: null
+      };
+      setUser(updatedUser);
+      
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      alert('Profile image deleted successfully!');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert(error.response?.data?.message || 'Failed to delete image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      // Update name via API
+      const response = await profileAPI.updateName(editedName);
+
+      // Update user state
+      const updatedUser = { ...user, name: response.data.name };
+      setUser(updatedUser);
+      
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      setIsEditing(false);
+      alert('Profile updated successfully!');
+    } catch (error) {
+      console.error('Update error:', error);
+      alert(error.response?.data?.message || 'Failed to update profile');
+    }
   };
 
   const handleCancelEdit = () => {
     setEditedName(user.name);
     setIsEditing(false);
-    
-    // Restore saved image
-    const savedImage = localStorage.getItem(`profileImage_${user._id}`);
-    setImagePreview(savedImage);
   };
 
   if (!user) {
@@ -101,6 +173,27 @@ export default function ProfilePage() {
   };
 
   const roleBadge = getRoleBadge();
+
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+    
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + ' years ago';
+    
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + ' months ago';
+    
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + ' days ago';
+    
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + ' hours ago';
+    
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + ' minutes ago';
+    
+    return Math.floor(seconds) + ' seconds ago';
+  };
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -145,9 +238,15 @@ export default function ProfilePage() {
               
               {/* Profile Picture */}
               <div className="relative mx-auto w-32 h-32 mb-6">
-                {imagePreview ? (
+                {uploadingImage && (
+                  <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center z-10">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  </div>
+                )}
+                
+                {user.profileImage ? (
                   <img 
-                    src={imagePreview} 
+                    src={user.profileImage} 
                     alt="Profile" 
                     className="w-full h-full rounded-full object-cover border-4 border-blue-500"
                   />
@@ -160,7 +259,9 @@ export default function ProfilePage() {
                 {/* Camera Button */}
                 <label 
                   htmlFor="profile-upload" 
-                  className="absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full cursor-pointer transition-all shadow-lg"
+                  className={`absolute bottom-0 right-0 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-all shadow-lg ${
+                    uploadingImage ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  }`}
                 >
                   <Camera size={20} />
                   <input
@@ -168,9 +269,24 @@ export default function ProfilePage() {
                     type="file"
                     accept="image/*"
                     onChange={handleImageChange}
+                    disabled={uploadingImage}
                     className="hidden"
                   />
                 </label>
+
+                {/* Delete Image Button */}
+                {user.profileImage && (
+                  <button
+                    onClick={handleDeleteImage}
+                    disabled={uploadingImage}
+                    className={`absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white p-2 rounded-full transition-all shadow-lg ${
+                      uploadingImage ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    title="Delete profile image"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
               </div>
 
               {/* User Info */}
@@ -245,7 +361,7 @@ export default function ProfilePage() {
                         Member since
                       </p>
                       <p className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                        {new Date(stats.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        {new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                       </p>
                     </div>
                   </div>
@@ -257,182 +373,135 @@ export default function ProfilePage() {
           {/* Right Column - Stats & Activity */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              
-              {/* Notes Downloaded */}
-              <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-                <div className="flex items-center justify-between mb-2">
-                  <Download className="text-blue-500" size={24} />
-                </div>
-                <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {stats.notesDownloaded}
-                </p>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Notes Downloaded
-                </p>
+            {loadingStats ? (
+              <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-12 text-center`}>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p className={isDark ? 'text-gray-400' : 'text-gray-600'}>Loading statistics...</p>
               </div>
-
-              {/* Notes Uploaded (Admin only) */}
-              {user.role !== 'student' && (
-                <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <Shield className="text-purple-500" size={24} />
-                  </div>
-                  <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                    {stats.notesUploaded}
-                  </p>
-                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Notes Uploaded
-                  </p>
-                </div>
-              )}
-
-              {/* Reviews */}
-              <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-                <div className="flex items-center justify-between mb-2">
-                  <Star className="text-yellow-500" size={24} />
-                </div>
-                <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {stats.reviews}
-                </p>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Reviews Given
-                </p>
-              </div>
-
-              {/* Average Rating */}
-              <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
-                <div className="flex items-center justify-between mb-2">
-                  <Star className="text-yellow-500" fill="currentColor" size={24} />
-                </div>
-                <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                  {stats.avgRating}
-                </p>
-                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                  Avg Rating
-                </p>
-              </div>
-            </div>
-
-            {/* Recent Activity */}
-            <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-8`}>
-              <h3 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Recent Activity
-              </h3>
-              
-              <div className="space-y-4">
-                {/* Activity Item */}
-                <div className={`flex items-start space-x-4 p-4 rounded-lg ${
-                  isDark ? 'bg-gray-700/50' : 'bg-gray-50'
-                }`}>
-                  <div className="bg-blue-500 p-2 rounded-lg">
-                    <Download size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      Downloaded "Data Structures - Chapter 5"
+            ) : (
+              <>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  
+                  {/* Reviews Given */}
+                  <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <Star className="text-yellow-500" size={24} />
+                    </div>
+                    <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      {stats.reviewsGiven}
                     </p>
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      2 hours ago
+                      Reviews Given
                     </p>
                   </div>
-                </div>
 
-                <div className={`flex items-start space-x-4 p-4 rounded-lg ${
-                  isDark ? 'bg-gray-700/50' : 'bg-gray-50'
-                }`}>
-                  <div className="bg-yellow-500 p-2 rounded-lg">
-                    <Star size={20} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      Reviewed "Algorithm Analysis Notes"
+                  {/* Average Rating Given */}
+                  <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <Star className="text-yellow-500" fill="currentColor" size={24} />
+                    </div>
+                    <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      {stats.avgRating}
                     </p>
                     <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                      1 day ago
+                      Avg Rating Given
                     </p>
                   </div>
+
+                  {/* Notes Uploaded (Admin only) */}
+                  {(user.role === 'admin' || user.role === 'superadmin') && (
+                    <>
+                      <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+                        <div className="flex items-center justify-
+                        between mb-2">
+                          <FileText className="text-purple-500" size={24} />
+                        </div>
+                        <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {stats.notesUploaded}
+                        </p>
+                        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Notes Uploaded
+                        </p>
+                      </div>
+
+                      <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-xl shadow-lg p-6`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <Eye className="text-blue-500" size={24} />
+                        </div>
+                        <p className={`text-3xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {stats.totalViews}
+                        </p>
+                        <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                          Total Views
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                {user.role !== 'student' && (
-                  <div className={`flex items-start space-x-4 p-4 rounded-lg ${
-                    isDark ? 'bg-gray-700/50' : 'bg-gray-50'
-                  }`}>
-                    <div className="bg-purple-500 p-2 rounded-lg">
-                      <Shield size={20} className="text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        Uploaded "Operating Systems - Week 3"
-                      </p>
-                      <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                        3 days ago
+                {/* Recent Activity */}
+                <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-8`}>
+                  <h3 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                    Recent Activity
+                  </h3>
+                  
+                  {stats.recentActivity.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Star className={`mx-auto mb-2 ${isDark ? 'text-gray-600' : 'text-gray-400'}`} size={48} />
+                      <p className={`${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                        No activity yet. Start reviewing PDFs!
                       </p>
                     </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Past Reviews */}
-            <div className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-2xl shadow-xl p-8`}>
-              <h3 className={`text-xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Your Reviews
-              </h3>
-              
-              <div className="space-y-4">
-                <div className={`p-4 rounded-lg border ${
-                  isDark ? 'border-gray-700' : 'border-gray-200'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      Database Management Systems
-                    </p>
-                    <div className="flex items-center space-x-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={16}
-                          className={star <= 5 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}
-                        />
+                  ) : (
+                    <div className="space-y-4">
+                      {stats.recentActivity.map((activity) => (
+                        <div
+                          key={activity._id}
+                          className={`flex items-start space-x-4 p-4 rounded-lg ${
+                            isDark ? 'bg-gray-700/50' : 'bg-gray-50'
+                          }`}
+                        >
+                          <div className="bg-yellow-500/20 p-2 rounded-lg">
+                            <Star className="text-yellow-400" size={20} />
+                          </div>
+                          <div className="flex-1">
+                            <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                              Reviewed "{activity.pdf?.title || 'PDF'}"
+                            </p>
+                            <div className="flex items-center space-x-2 mt-1">
+                              <div className="flex items-center">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    size={14}
+                                    className={`${
+                                      star <= activity.rating
+                                        ? 'text-yellow-400 fill-yellow-400'
+                                        : isDark
+                                        ? 'text-gray-600'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <span className={`text-xs ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                • {getTimeAgo(activity.createdAt)}
+                              </span>
+                            </div>
+                            {activity.review && (
+                              <p className={`text-sm mt-2 ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                                "{activity.review}"
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       ))}
                     </div>
-                  </div>
-                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    "Excellent notes! Very detailed and well-organized. Helped me ace my exam!"
-                  </p>
-                  <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                    1 week ago
-                  </p>
+                  )}
                 </div>
-
-                <div className={`p-4 rounded-lg border ${
-                  isDark ? 'border-gray-700' : 'border-gray-200'
-                }`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <p className={`font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                      Computer Networks
-                    </p>
-                    <div className="flex items-center space-x-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <Star
-                          key={star}
-                          size={16}
-                          className={star <= 4 ? 'text-yellow-500 fill-yellow-500' : 'text-gray-400'}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                    "Good content, but could use more examples."
-                  </p>
-                  <p className={`text-xs mt-2 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
-                    2 weeks ago
-                  </p>
-                </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         </div>
       </main>

@@ -4,13 +4,20 @@ import { ArrowLeft, FileText, Download, Star, Eye, Calendar, User, Search, Filte
 import SettingsSidebar from './SettingsSidebar';
 
 export default function LiberalArtsNotes() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
   const [user, setUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterBy, setFilterBy] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('All');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   // Mock Liberal Arts notes data
   const notes = [

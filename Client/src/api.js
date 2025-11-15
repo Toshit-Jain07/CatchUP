@@ -80,6 +80,12 @@ export const userAPI = {
     deleteUser: async(userId) => {
         const response = await api.delete(`/users/${userId}`);
         return response.data;
+    },
+
+    // Get current user's profile statistics
+    getProfileStats: async() => {
+        const response = await api.get('/users/profile/stats');
+        return response.data;
     }
 };
 
@@ -88,14 +94,20 @@ export const pdfAPI = {
     // Get all PDFs with optional filters
     getAllPDFs: async(filters = {}) => {
         const { semester, branch, year, search } = filters;
-        let url = '/pdfs?';
+        const params = new URLSearchParams();
 
-        if (semester) url += `semester=${semester}&`;
-        if (branch) url += `branch=${branch}&`;
-        if (year) url += `year=${year}&`;
-        if (search) url += `search=${search}&`;
+        if (semester) params.append('semester', semester);
+        if (branch) params.append('branch', branch);
+        if (year) params.append('year', year);
+        if (search) params.append('search', search);
 
-        const response = await api.get(url);
+        const response = await api.get(`/pdfs?${params.toString()}`);
+        return response.data;
+    },
+
+    // Get semester statistics
+    getSemesterStats: async(semesterId) => {
+        const response = await api.get(`/pdfs/stats/semester/${semesterId}`);
         return response.data;
     },
 
@@ -113,6 +125,32 @@ export const pdfAPI = {
             }
         });
         return response.data;
+    },
+
+    // Update PDF details (Admin/Super Admin or Owner)
+    updatePDF: async(pdfId, updateData) => {
+        const response = await api.put(`/pdfs/${pdfId}`, updateData);
+        return response.data;
+    },
+
+    // Delete PDF (Admin/Super Admin or Owner)
+    deletePDF: async(pdfId) => {
+        const response = await api.delete(`/pdfs/${pdfId}`);
+        return response.data;
+    },
+
+    // Increment download count
+    incrementDownload: async(pdfId) => {
+        const response = await api.put(`/pdfs/${pdfId}/download`);
+        return response.data;
+    },
+
+    // Download PDF with tracking
+    downloadPDF: async(pdfId) => {
+        // First increment the download count
+        await api.put(`/pdfs/${pdfId}/download`);
+        // Return the download URL endpoint
+        return `${API_BASE_URL}/pdfs/download/${pdfId}`;
     },
 
     // Get PDF statistics (Admin/Super Admin only)
@@ -133,6 +171,47 @@ export const ratingAPI = {
     // Get all ratings for a PDF
     getRatings: async(pdfId) => {
         const response = await api.get(`/ratings/${pdfId}`);
+        return response.data;
+    },
+
+    // Get current user's rating for a PDF
+    getUserRating: async(pdfId) => {
+        const response = await api.get(`/ratings/user/${pdfId}`);
+        return response.data;
+    },
+
+    // Delete user's rating
+    deleteRating: async(pdfId) => {
+        const response = await api.delete(`/ratings/${pdfId}`);
+        return response.data;
+    }
+};
+
+
+// Profile API calls
+export const profileAPI = {
+    // Upload profile image
+    uploadProfileImage: async(imageFile) => {
+        const formData = new FormData();
+        formData.append('profileImage', imageFile);
+
+        const response = await api.post('/profile/upload-image', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
+    },
+
+    // Delete profile image
+    deleteProfileImage: async() => {
+        const response = await api.delete('/profile/delete-image');
+        return response.data;
+    },
+
+    // Update name
+    updateName: async(name) => {
+        const response = await api.put('/profile/update-name', { name });
         return response.data;
     }
 };

@@ -9,7 +9,7 @@ export default function SettingsSidebar({ isOpen, onClose, user, isDark, setIsDa
   const isSuperAdmin = user.role === 'superadmin';
   
   const getProfileImage = () => {
-    const savedImage = localStorage.getItem(`profileImage_${user._id}`);
+    const savedImage = user.profileImage;
     return savedImage;
   };
 

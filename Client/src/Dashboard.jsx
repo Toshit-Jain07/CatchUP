@@ -4,7 +4,10 @@ import { Book, Settings, GraduationCap, BookOpen } from 'lucide-react';
 import SettingsSidebar from './SettingsSidebar';
 
 export default function Dashboard() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
   const [user, setUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -29,6 +32,11 @@ export default function Dashboard() {
       navigate('/');
     }
   }, [navigate]);
+
+  useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -59,7 +67,7 @@ export default function Dashboard() {
   };
 
   const getProfileImage = () => {
-    return localStorage.getItem(`profileImage_${user._id}`);
+    return user?.profileImage;
   };
 
   const getRoleText = () => {

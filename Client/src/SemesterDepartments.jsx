@@ -1,65 +1,75 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Cpu, Cog, Zap, Building, FlaskConical, Calculator, Briefcase, Settings } from 'lucide-react';
+import { ArrowLeft, Cpu, Cog, Zap, Building, Settings } from 'lucide-react';
 import SettingsSidebar from './SettingsSidebar';
+import { pdfAPI } from './api';
 
 export default function SemesterDepartments() {
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem('theme');
+    return saved ? saved === 'dark' : true;
+  });
   const [user, setUser] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [stats, setStats] = useState({
+    totalPDFs: 0,
+    totalDepartments: 0,
+    averageRating: 0
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
   const navigate = useNavigate();
   const { semesterId } = useParams();
 
   const departments = [
-  { 
-    id: 'cse', 
-    name: 'Computer Science', 
-    shortName: 'CSE',
-    icon: Cpu,
-    color: 'from-blue-500 to-cyan-500',
-    description: 'Software, Algorithms, Data Structures'
-  },
-  { 
-    id: 'ece', 
-    name: 'Electronics & Communication', 
-    shortName: 'ECE',
-    icon: Zap,
-    color: 'from-yellow-500 to-orange-500',
-    description: 'Circuits, Signals, Communication'
-  },
-  { 
-    id: 'eee', 
-    name: 'Electrical Engineering', 
-    shortName: 'EEE',
-    icon: Zap,
-    color: 'from-purple-500 to-pink-500',
-    description: 'Power Systems, Machines, Control'
-  },
-  { 
-    id: 'mechanical', 
-    name: 'Mechanical Engineering', 
-    shortName: 'MECH',
-    icon: Cog,
-    color: 'from-gray-500 to-gray-700',
-    description: 'Thermodynamics, Mechanics, Design'
-  },
-  { 
-    id: 'civil', 
-    name: 'Civil Engineering', 
-    shortName: 'CIVIL',
-    icon: Building,
-    color: 'from-green-500 to-emerald-500',
-    description: 'Structures, Construction, Materials'
-  },
-  { 
-    id: 'it', 
-    name: 'Information Technology', 
-    shortName: 'IT',
-    icon: Cpu,
-    color: 'from-indigo-500 to-blue-500',
-    description: 'Networks, Database, Web Development'
-  }
-];
+    { 
+      id: 'cse', 
+      name: 'Computer Science', 
+      shortName: 'CSE',
+      icon: Cpu,
+      color: 'from-blue-500 to-cyan-500',
+      description: 'Software, Algorithms, Data Structures'
+    },
+    { 
+      id: 'ece', 
+      name: 'Electronics & Communication', 
+      shortName: 'ECE',
+      icon: Zap,
+      color: 'from-yellow-500 to-orange-500',
+      description: 'Circuits, Signals, Communication'
+    },
+    { 
+      id: 'eee', 
+      name: 'Electrical Engineering', 
+      shortName: 'EEE',
+      icon: Zap,
+      color: 'from-purple-500 to-pink-500',
+      description: 'Power Systems, Machines, Control'
+    },
+    { 
+      id: 'mechanical', 
+      name: 'Mechanical Engineering', 
+      shortName: 'MECH',
+      icon: Cog,
+      color: 'from-gray-500 to-gray-700',
+      description: 'Thermodynamics, Mechanics, Design'
+    },
+    { 
+      id: 'civil', 
+      name: 'Civil Engineering', 
+      shortName: 'CIVIL',
+      icon: Building,
+      color: 'from-green-500 to-emerald-500',
+      description: 'Structures, Construction, Materials'
+    },
+    { 
+      id: 'it', 
+      name: 'Information Technology', 
+      shortName: 'IT',
+      icon: Cpu,
+      color: 'from-indigo-500 to-blue-500',
+      description: 'Networks, Database, Web Development'
+    }
+  ];
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -69,6 +79,30 @@ export default function SemesterDepartments() {
       navigate('/');
     }
   }, [navigate]);
+
+  // Fetch semester statistics
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoadingStats(true);
+        const response = await pdfAPI.getSemesterStats(semesterId);
+        setStats(response.data);
+      } catch (error) {
+        console.error('Error fetching semester stats:', error);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    if (user) {
+      fetchStats();
+    }
+  }, [semesterId, user]);
+
+  // Save theme to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
 
   const handleDepartmentClick = (deptId) => {
     navigate(`/semester/${semesterId}/department/${deptId}`);
@@ -187,32 +221,42 @@ export default function SemesterDepartments() {
           <h2 className={`text-2xl font-bold mb-6 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             Semester {semesterId} Overview
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
-              <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
-                156
-              </p>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Total Notes Available
-              </p>
-            </div>
-            <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
-              <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
-                {departments.length}
-              </p>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Departments
+          
+          {loadingStats ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <p className={`mt-2 text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                Loading statistics...
               </p>
             </div>
-            <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
-              <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
-                4.8★
-              </p>
-              <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                Average Rating
-              </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
+                <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-blue-400' : 'text-blue-600'}`}>
+                  {stats.totalPDFs}
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Total Notes Available
+                </p>
+              </div>
+              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
+                <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-green-400' : 'text-green-600'}`}>
+                  {stats.totalDepartments}
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Active Departments
+                </p>
+              </div>
+              <div className={`${isDark ? 'bg-gray-700/50' : 'bg-gray-50'} rounded-xl p-6`}>
+                <p className={`text-3xl font-bold mb-2 ${isDark ? 'text-purple-400' : 'text-purple-600'}`}>
+                  {stats.averageRating}★
+                </p>
+                <p className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Average Rating
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
 
