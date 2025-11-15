@@ -20,7 +20,6 @@ export function useAuthForm() {
   useEffect(() => {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
   }, [isDark]);
-
   const handleInputChange = (e) => {
     setFormData({
       ...formData,

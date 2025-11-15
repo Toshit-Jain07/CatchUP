@@ -1,13 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthPage from './AuthPage';
+import SemesterDepartments from './SemesterDepartments';
+import DepartmentNotes from './DepartmentNotes';
+import LiberalArtsNotes from './LiberalArtsNotes';
 import Dashboard from './Dashboard';
 import UserManagement from './UserManagement';
 import './App.css';
 import ResetPassword from './ResetPassword';
 import ProfilePage from './ProfilePage';
-import SemesterDepartments from './SemesterDepartments';
-import DepartmentNotes from './DepartmentNotes';
-import LiberalArtsNotes from './LiberalArtsNotes';
 
 
 // Protected Route Component
@@ -34,7 +34,7 @@ function App() {
               <Dashboard />
             </ProtectedRoute>
           } 
-        />
+        />        
         <Route 
           path="/profile" 
           element={

@@ -45,7 +45,7 @@ router.get('/', async(req, res) => {
 });
 
 // @route   GET /api/pdfs/download/:id
-// @desc    Download PDF file with proper headers
+// @desc    Download PDF file (increments downloads only)
 // @access  Public
 router.get('/download/:id', async(req, res) => {
     try {
@@ -79,7 +79,7 @@ router.get('/download/:id', async(req, res) => {
 });
 
 // @route   GET /api/pdfs/:id
-// @desc    Get single PDF by ID
+// @desc    Get single PDF by ID (increments views only)
 // @access  Public
 router.get('/:id', async(req, res) => {
     try {
@@ -315,6 +315,58 @@ router.put('/:id/download', async(req, res) => {
     }
 });
 
+// @route   GET /api/pdfs/stats/semester/:semesterId
+// @desc    Get statistics for a specific semester
+// @access  Public
+router.get('/stats/semester/:semesterId', async(req, res) => {
+    try {
+        const { semesterId } = req.params;
+
+        // Count total PDFs for this semester
+        const totalPDFs = await PDF.countDocuments({
+            semester: semesterId,
+            isActive: true
+        });
+
+        // Count unique departments/branches
+        const departments = await PDF.distinct('branch', {
+            semester: semesterId,
+            isActive: true
+        });
+
+        // Calculate average rating for this semester
+        const ratingStats = await PDF.aggregate([{
+                $match: {
+                    semester: semesterId,
+                    isActive: true,
+                    totalRatings: { $gt: 0 }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    avgRating: { $avg: '$averageRating' }
+                }
+            }
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: {
+                totalPDFs,
+                totalDepartments: departments.length,
+                averageRating: ratingStats.length > 0 ? ratingStats[0].avgRating.toFixed(1) : 0
+            }
+        });
+
+    } catch (error) {
+        console.error('Semester Stats Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while fetching semester statistics'
+        });
+    }
+});
 // @route   GET /api/pdfs/stats/overview
 // @desc    Get PDF statistics
 // @access  Private (Admin & Super Admin)

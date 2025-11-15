@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect} from 'react';
 import { Moon, Sun, Book, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { useAuthForm } from './useAuthForm';
 import ComingSoonModal from './ComingSoonModal';
