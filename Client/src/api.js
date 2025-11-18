@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Base URL for your backend
-const API_BASE_URL = 'http://localhost:5000/api';
+// Base URL for your backend (works both locally and in Docker)
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance
 const api = axios.create({
