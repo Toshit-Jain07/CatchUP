@@ -19,9 +19,6 @@ services:
       - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
     networks:
       - catchup-network
-    volumes:
-      - ./server:/app
-      - /app/node_modules
 
   # Frontend Service
   frontend:
@@ -38,9 +35,6 @@ services:
       - backend
     networks:
       - catchup-network
-    volumes:
-      - ./client:/app
-      - /app/node_modules
 
 
 networks:
